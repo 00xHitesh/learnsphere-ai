@@ -1,7 +1,9 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import appCss from "../styles.css?url";
-import { StoreProvider } from "@/lib/store";
+import { AuthProvider } from "@/lib/auth-store";
 import { Layout } from "@/components/Layout";
 import { Toaster } from "sonner";
 
@@ -84,12 +86,22 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: { staleTime: 30_000, retry: false, refetchOnWindowFocus: false },
+        },
+      }),
+  );
   return (
-    <StoreProvider>
-      <Layout>
-        <Outlet />
-      </Layout>
-      <Toaster position="top-center" richColors />
-    </StoreProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Layout>
+          <Outlet />
+        </Layout>
+        <Toaster position="top-center" richColors />
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }

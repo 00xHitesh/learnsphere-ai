@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth-store";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -29,7 +29,7 @@ export function Field({ label, type = "text", value, onChange, required }: { lab
 }
 
 function LoginPage() {
-  const { login } = useStore();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

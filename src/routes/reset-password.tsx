@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth-store";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { AuthFrame, Field } from "./login";
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/reset-password")({
 
 function ResetPasswordPage() {
   const { token } = Route.useSearch();
-  const { resetPassword } = useStore();
+  const { resetPassword } = useAuth();
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);

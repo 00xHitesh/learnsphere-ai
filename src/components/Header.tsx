@@ -1,12 +1,12 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Logo } from "./Logo";
-import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth-store";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { useState } from "react";
 
 export function Header() {
-  const { currentUser, logout } = useStore();
+  const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 

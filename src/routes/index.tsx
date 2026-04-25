@@ -1,25 +1,24 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import heroImg from "@/assets/hero.jpg";
-import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth-store";
+import { useCourses } from "@/lib/query/courses";
 import { CourseCard } from "@/components/CourseCard";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Bot, Compass, Sparkles } from "lucide-react";
 
-export const Route = createFileRoute("/")({
-  component: Index,
-});
+export const Route = createFileRoute("/")({ component: Index });
 
 function Index() {
-  const { db, currentUser } = useStore();
-  const featured = db.courses.filter((c) => c.approved).slice(0, 6);
+  const { currentUser } = useAuth();
+  const { data: courses = [] } = useCourses();
+
+  const featured = courses.slice(0, 6);
   const recommended = currentUser
-    ? db.courses
+    ? courses
         .filter(
           (c) =>
-            c.approved &&
-            (currentUser.interests.length === 0 ||
-              currentUser.interests.includes(c.category)),
+            currentUser.interests.length === 0 ||
+            currentUser.interests.includes(c.category),
         )
         .slice(0, 3)
     : [];
@@ -28,10 +27,7 @@ function Index() {
     <div>
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div
-          className="absolute inset-0 -z-10"
-          style={{ background: "var(--gradient-hero)" }}
-        />
+        <div className="absolute inset-0 -z-10" style={{ background: "var(--gradient-hero)" }} />
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-20 sm:px-6 md:grid-cols-2 md:py-28">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
@@ -44,8 +40,8 @@ function Index() {
               <br /> you've meant to learn.
             </h1>
             <p className="mt-6 max-w-md text-base text-muted-foreground sm:text-lg">
-              Hand-picked courses, an AI study assistant, and a calm interface
-              that gets out of your way.
+              Hand-picked courses, an AI study assistant, and a calm interface that gets out of your
+              way.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button asChild size="lg">
@@ -60,7 +56,7 @@ function Index() {
               </Button>
             </div>
             <div className="mt-10 flex items-center gap-6 text-xs text-muted-foreground">
-              <span>{db.courses.length} curated courses</span>
+              <span>{courses.length} curated courses</span>
               <span className="h-1 w-1 rounded-full bg-border" />
               <span>AI study assistant</span>
               <span className="h-1 w-1 rounded-full bg-border" />

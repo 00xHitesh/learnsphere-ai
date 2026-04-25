@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useStore } from "@/lib/store";
+import { useCourses } from "@/lib/query/courses";
 import { CourseCard } from "@/components/CourseCard";
 import { categories } from "@/lib/seed";
 import { Search } from "lucide-react";
@@ -9,7 +9,10 @@ export const Route = createFileRoute("/courses")({
   head: () => ({
     meta: [
       { title: "Courses — Lumen" },
-      { name: "description", content: "Browse curated courses across design, programming, art, business, and writing." },
+      {
+        name: "description",
+        content: "Browse curated courses across design, programming, art, business, and writing.",
+      },
       { property: "og:title", content: "Courses — Lumen" },
       { property: "og:description", content: "Browse curated courses across many disciplines." },
     ],
@@ -18,14 +21,14 @@ export const Route = createFileRoute("/courses")({
 });
 
 function CoursesPage() {
-  const { db } = useStore();
+  const { data: allCourses = [] } = useCourses();
   const [category, setCategory] = useState<string>("All");
   const [price, setPrice] = useState<"all" | "free" | "paid">("all");
   const [sort, setSort] = useState<"popular" | "newest" | "price-low" | "price-high">("popular");
   const [q, setQ] = useState("");
 
   const courses = useMemo(() => {
-    let list = db.courses.filter((c) => c.approved);
+    let list = [...allCourses];
     if (category !== "All") list = list.filter((c) => c.category === category);
     if (price === "free") list = list.filter((c) => c.price === 0);
     if (price === "paid") list = list.filter((c) => c.price > 0);
@@ -40,26 +43,22 @@ function CoursesPage() {
     }
     switch (sort) {
       case "newest":
-        list = [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-        break;
+        return [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
       case "price-low":
-        list = [...list].sort((a, b) => a.price - b.price);
-        break;
+        return [...list].sort((a, b) => a.price - b.price);
       case "price-high":
-        list = [...list].sort((a, b) => b.price - a.price);
-        break;
+        return [...list].sort((a, b) => b.price - a.price);
       default:
-        list = [...list].sort((a, b) => b.students - a.students);
+        return [...list].sort((a, b) => b.students - a.students);
     }
-    return list;
-  }, [db.courses, category, price, sort, q]);
+  }, [allCourses, category, price, sort, q]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
       <div className="mb-10">
         <h1 className="font-serif text-4xl text-foreground sm:text-5xl">Courses</h1>
         <p className="mt-2 text-muted-foreground">
-          {db.courses.filter((c) => c.approved).length} curated courses, ready when you are.
+          {allCourses.length} curated courses, ready when you are.
         </p>
       </div>
 
@@ -80,7 +79,9 @@ function CoursesPage() {
             className="rounded-md border border-border bg-card px-3 py-2 text-sm"
           >
             {categories.map((c) => (
-              <option key={c} value={c}>{c}</option>
+              <option key={c} value={c}>
+                {c}
+              </option>
             ))}
           </select>
           <select
