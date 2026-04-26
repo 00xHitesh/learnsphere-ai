@@ -16,9 +16,11 @@ import {
   Bot,
   CheckCircle2,
   Circle,
+  ClipboardList,
   Clock,
   Globe,
   Heart,
+  Play,
   Star,
   Users,
 } from "lucide-react";
