@@ -79,6 +79,16 @@ function CourseDetailPage() {
   const toggleWishlistMutation = useToggleWishlist();
   const toggleLessonMutation = useToggleLessonComplete();
 
+  const previewLessons = (course?.lessons ?? []).filter((l) => l.preview && l.videoUrl);
+  const initialPreviewId =
+    previewLessons[0]?.id ?? course?.lessons.find((l) => l.videoUrl)?.id ?? null;
+  const [previewLessonId, setPreviewLessonId] = useState<string | null>(initialPreviewId);
+  const activePreviewLesson =
+    course?.lessons.find((l) => l.id === previewLessonId) ??
+    course?.lessons.find((l) => l.videoUrl) ??
+    null;
+  const previewEmbed = toEmbedUrl(activePreviewLesson?.videoUrl);
+
   if (isLoading)
     return (
       <div className="mx-auto max-w-3xl px-6 py-24 text-center">
