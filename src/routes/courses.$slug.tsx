@@ -322,6 +322,52 @@ function CourseDetailPage() {
         </div>
       </section>
 
+      {/* ── Quizzes ─────────────────────────────────────── */}
+      {course.quizzes?.length > 0 && (
+        <section className="border-t border-border bg-secondary/30">
+          <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+            <div className="flex items-baseline justify-between">
+              <div>
+                <h2 className="font-serif text-2xl text-foreground">Quizzes</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Check your understanding as you progress.
+                </p>
+              </div>
+            </div>
+            <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+              {course.quizzes.map((q) => (
+                <li
+                  key={q.id}
+                  className="flex items-start justify-between gap-4 rounded-lg border border-border bg-card p-4"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <ClipboardList className="h-3.5 w-3.5" />
+                      <span>
+                        {q.questions.length} questions · pass at {q.passingScore}%
+                      </span>
+                    </div>
+                    <h3 className="mt-1 font-medium text-foreground">{q.title}</h3>
+                    {q.description && (
+                      <p className="mt-1 text-sm text-muted-foreground">{q.description}</p>
+                    )}
+                  </div>
+                  <Button asChild variant="outline" size="sm" className="shrink-0">
+                    <Link
+                      to="/learn/$slug"
+                      params={{ slug: course.slug }}
+                      search={{ quiz: q.id }}
+                    >
+                      <Play className="mr-1.5 h-3.5 w-3.5" /> Start
+                    </Link>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
       {/* ── Reviews ─────────────────────────────────────── */}
       <section className="border-t border-border">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
