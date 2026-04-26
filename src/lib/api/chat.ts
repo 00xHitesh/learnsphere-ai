@@ -4,7 +4,7 @@ import type { ChatMessage } from "../types";
 
 export const chatApi = {
   list: (userId: string) =>
-    mockRequest(() => [...(db.chats[userId] ?? [])], 50),
+    mockRequest(() => (db.chats[userId] ?? []).map((m) => ({ ...m })), 50),
 
   append: (userId: string, msg: ChatMessage) =>
     mockRequest(() => {
