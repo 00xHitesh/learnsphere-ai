@@ -170,7 +170,9 @@ function CourseDetailPage() {
                 </div>
                 <div className="text-xs text-muted-foreground">{pct}% complete</div>
                 <Button asChild className="w-full">
-                  <a href="#curriculum">Continue learning</a>
+                  <Link to="/learn/$slug" params={{ slug: course.slug }}>
+                    Continue learning
+                  </Link>
                 </Button>
               </div>
             ) : (
@@ -182,6 +184,13 @@ function CourseDetailPage() {
                 >
                   {course.price === 0 ? "Enroll for free" : "Buy this course"}
                 </Button>
+                {course.price === 0 && (
+                  <Button asChild variant="secondary" className="w-full">
+                    <Link to="/learn/$slug" params={{ slug: course.slug }}>
+                      Start learning
+                    </Link>
+                  </Button>
+                )}
                 <Button variant="outline" onClick={handleToggleWishlist} className="w-full">
                   <Heart
                     className={`mr-2 h-4 w-4 ${inWishlist ? "fill-current text-accent" : ""}`}
