@@ -1,4 +1,4 @@
-import type { Course, User } from "./types";
+import type { Course, Quiz, User } from "./types";
 
 export const seedUsers: User[] = [
   {
@@ -28,7 +28,51 @@ const lessons = (titles: string[]) =>
     duration: `${4 + (i % 8)}:${(10 + i * 7) % 60 < 10 ? "0" : ""}${(10 + i * 7) % 60}`,
     videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
     preview: i === 0,
+    description: `A focused lesson on ${t.toLowerCase()} — short, practical, and self-contained.`,
   }));
+
+const sampleQuiz = (slug: string, topic: string): Quiz => ({
+  id: `q-${slug}-1`,
+  title: `${topic} — Knowledge check`,
+  description: "A short quiz to reinforce what you learned.",
+  passingScore: 70,
+  questions: [
+    {
+      id: `q-${slug}-1-q1`,
+      prompt: `Which best describes a key idea from "${topic}"?`,
+      options: [
+        { id: "a", text: "Decoration over composition" },
+        { id: "b", text: "Clear hierarchy and intentional choices" },
+        { id: "c", text: "Whatever the default looks like" },
+        { id: "d", text: "Maximum complexity, always" },
+      ],
+      correctOptionId: "b",
+      explanation: "Hierarchy and intent separate composed work from decorated work.",
+    },
+    {
+      id: `q-${slug}-1-q2`,
+      prompt: "What's the most useful first step when starting a new piece?",
+      options: [
+        { id: "a", text: "Pick the most ornate option" },
+        { id: "b", text: "Define constraints and goals" },
+        { id: "c", text: "Skip planning entirely" },
+        { id: "d", text: "Copy a competitor exactly" },
+      ],
+      correctOptionId: "b",
+    },
+    {
+      id: `q-${slug}-1-q3`,
+      prompt: "Restraint usually means…",
+      options: [
+        { id: "a", text: "Doing less, deliberately" },
+        { id: "b", text: "Adding more variations" },
+        { id: "c", text: "Avoiding all decisions" },
+        { id: "d", text: "Working faster" },
+      ],
+      correctOptionId: "a",
+    },
+  ],
+});
 
 export const seedCourses: Course[] = [
   {
