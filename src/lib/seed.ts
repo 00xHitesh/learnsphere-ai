@@ -1,4 +1,4 @@
-import type { Course, User } from "./types";
+import type { Course, Quiz, User } from "./types";
 
 export const seedUsers: User[] = [
   {
@@ -28,7 +28,51 @@ const lessons = (titles: string[]) =>
     duration: `${4 + (i % 8)}:${(10 + i * 7) % 60 < 10 ? "0" : ""}${(10 + i * 7) % 60}`,
     videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
     preview: i === 0,
+    description: `A focused lesson on ${t.toLowerCase()} — short, practical, and self-contained.`,
   }));
+
+const sampleQuiz = (slug: string, topic: string): Quiz => ({
+  id: `q-${slug}-1`,
+  title: `${topic} — Knowledge check`,
+  description: "A short quiz to reinforce what you learned.",
+  passingScore: 70,
+  questions: [
+    {
+      id: `q-${slug}-1-q1`,
+      prompt: `Which best describes a key idea from "${topic}"?`,
+      options: [
+        { id: "a", text: "Decoration over composition" },
+        { id: "b", text: "Clear hierarchy and intentional choices" },
+        { id: "c", text: "Whatever the default looks like" },
+        { id: "d", text: "Maximum complexity, always" },
+      ],
+      correctOptionId: "b",
+      explanation: "Hierarchy and intent separate composed work from decorated work.",
+    },
+    {
+      id: `q-${slug}-1-q2`,
+      prompt: "What's the most useful first step when starting a new piece?",
+      options: [
+        { id: "a", text: "Pick the most ornate option" },
+        { id: "b", text: "Define constraints and goals" },
+        { id: "c", text: "Skip planning entirely" },
+        { id: "d", text: "Copy a competitor exactly" },
+      ],
+      correctOptionId: "b",
+    },
+    {
+      id: `q-${slug}-1-q3`,
+      prompt: "Restraint usually means…",
+      options: [
+        { id: "a", text: "Doing less, deliberately" },
+        { id: "b", text: "Adding more variations" },
+        { id: "c", text: "Avoiding all decisions" },
+        { id: "d", text: "Working faster" },
+      ],
+      correctOptionId: "a",
+    },
+  ],
+});
 
 export const seedCourses: Course[] = [
   {
@@ -60,6 +104,7 @@ export const seedCourses: Course[] = [
       { id: "r2", user: "Aria P.", rating: 5, comment: "The studio exercises are exceptional.", date: "2025-03-04" },
     ],
     tags: ["typography", "design", "layout"],
+    quizzes: [sampleQuiz("craft-of-modern-typography", "Typography essentials")],
     approved: true,
     createdAt: "2025-01-04",
   },
@@ -91,6 +136,7 @@ export const seedCourses: Course[] = [
       { id: "r1", user: "Nina T.", rating: 5, comment: "Crystal clear. Best TS intro I've taken.", date: "2025-01-22" },
     ],
     tags: ["typescript", "programming", "javascript"],
+    quizzes: [sampleQuiz("foundations-of-typescript", "TypeScript foundations")],
     approved: true,
     createdAt: "2025-01-12",
   },
@@ -119,6 +165,7 @@ export const seedCourses: Course[] = [
     ]),
     reviews: [],
     tags: ["art", "watercolor", "painting"],
+    quizzes: [sampleQuiz("watercolor-slow-practice", "Watercolor practice")],
     approved: true,
     createdAt: "2025-02-02",
   },
@@ -149,6 +196,7 @@ export const seedCourses: Course[] = [
       { id: "r1", user: "Owen B.", rating: 4, comment: "Pragmatic and honest.", date: "2025-02-18" },
     ],
     tags: ["product", "strategy", "business"],
+    quizzes: [sampleQuiz("product-strategy-for-builders", "Product strategy")],
     approved: true,
     createdAt: "2025-02-09",
   },
@@ -181,6 +229,7 @@ export const seedCourses: Course[] = [
       { id: "r2", user: "Lia M.", rating: 5, comment: "Dense and worth re-watching.", date: "2025-03-22" },
     ],
     tags: ["react", "architecture", "frontend"],
+    quizzes: [sampleQuiz("architecture-of-react-apps", "React architecture")],
     approved: true,
     createdAt: "2025-02-20",
   },
@@ -208,6 +257,7 @@ export const seedCourses: Course[] = [
     ]),
     reviews: [],
     tags: ["writing", "content"],
+    quizzes: [sampleQuiz("writing-for-the-web", "Writing for the web")],
     approved: true,
     createdAt: "2025-03-01",
   },

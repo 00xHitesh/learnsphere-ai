@@ -16,6 +16,29 @@ export interface Lesson {
   duration: string; // e.g. "8:24"
   videoUrl?: string; // youtube embed url
   preview?: boolean;
+  description?: string;
+  resources?: { label: string; url: string }[];
+}
+
+export interface QuizOption {
+  id: string;
+  text: string;
+}
+
+export interface QuizQuestion {
+  id: string;
+  prompt: string;
+  options: QuizOption[];
+  correctOptionId: string;
+  explanation?: string;
+}
+
+export interface Quiz {
+  id: string;
+  title: string;
+  description?: string;
+  passingScore: number; // percentage 0-100
+  questions: QuizQuestion[];
 }
 
 export interface Review {
@@ -41,6 +64,7 @@ export interface Course {
   instructorBio: string;
   cover: string; // emoji or short label used in artwork tile
   lessons: Lesson[];
+  quizzes: Quiz[];
   reviews: Review[];
   tags: string[];
   approved: boolean;

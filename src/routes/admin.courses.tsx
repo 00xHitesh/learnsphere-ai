@@ -2,9 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAdminCourses, useDeleteCourse, useToggleCourseApproval, useUpsertCourse } from "@/lib/query/courses";
 import { Button } from "@/components/ui/button";
-import { Pencil, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import type { Course } from "@/lib/types";
+import type { Course, Lesson, Quiz, QuizQuestion } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/courses")({ component: AdminCourses });
 
@@ -30,6 +30,7 @@ const blank = (): Course => ({
   instructorBio: "",
   cover: "✦",
   lessons: [],
+  quizzes: [],
   reviews: [],
   tags: [],
   approved: true,
@@ -213,30 +214,14 @@ function Editor({
               className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
           </label>
-          <label className="block">
-            <span className="text-xs text-muted-foreground">Lessons (one per line)</span>
-            <textarea
-              rows={5}
-              value={c.lessons.map((l) => l.title).join("\n")}
-              onChange={(e) =>
-                update(
-                  "lessons",
-                  e.target.value
-                    .split("\n")
-                    .map((s) => s.trim())
-                    .filter(Boolean)
-                    .map((title, i) => ({
-                      id: `l-${i}-${slugify(title)}`,
-                      title,
-                      duration: "5:00",
-                      videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-                      preview: i === 0,
-                    })),
-                )
-              }
-              className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs outline-none focus:ring-2 focus:ring-ring"
-            />
-          </label>
+          <LessonsEditor
+            lessons={c.lessons}
+            onChange={(lessons) => update("lessons", lessons)}
+          />
+          <QuizzesEditor
+            quizzes={c.quizzes ?? []}
+            onChange={(quizzes) => update("quizzes", quizzes)}
+          />
         </div>
         <div className="mt-6 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>
@@ -247,6 +232,311 @@ function Editor({
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function LessonsEditor({
+  lessons,
+  onChange,
+}: {
+  lessons: Lesson[];
+  onChange: (lessons: Lesson[]) => void;
+}) {
+  const update = (idx: number, patch: Partial<Lesson>) => {
+    onChange(lessons.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
+  };
+  const add = () =>
+    onChange([
+      ...lessons,
+      {
+        id: `l-${Date.now()}`,
+        title: "Untitled lesson",
+        duration: "5:00",
+        videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        preview: lessons.length === 0,
+      },
+    ]);
+  const remove = (idx: number) => onChange(lessons.filter((_, i) => i !== idx));
+  const move = (idx: number, dir: -1 | 1) => {
+    const j = idx + dir;
+    if (j < 0 || j >= lessons.length) return;
+    const next = [...lessons];
+    [next[idx], next[j]] = [next[j], next[idx]];
+    onChange(next);
+  };
+
+  return (
+    <div className="rounded-lg border border-border p-4">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-foreground">Lessons</span>
+        <Button type="button" size="sm" variant="outline" onClick={add}>
+          <Plus className="mr-1 h-3.5 w-3.5" /> Add lesson
+        </Button>
+      </div>
+      {lessons.length === 0 ? (
+        <p className="mt-3 text-xs text-muted-foreground">No lessons yet.</p>
+      ) : (
+        <ul className="mt-3 space-y-3">
+          {lessons.map((l, i) => (
+            <li key={l.id} className="rounded-md border border-border bg-background p-3">
+              <div className="flex items-start gap-2">
+                <div className="flex flex-col">
+                  <button
+                    type="button"
+                    onClick={() => move(i, -1)}
+                    className="rounded p-1 text-muted-foreground hover:bg-secondary"
+                  >
+                    <ChevronUp className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => move(i, 1)}
+                    className="rounded p-1 text-muted-foreground hover:bg-secondary"
+                  >
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                </div>
+                <div className="grid flex-1 gap-2 sm:grid-cols-[1fr_100px]">
+                  <input
+                    value={l.title}
+                    onChange={(e) => update(i, { title: e.target.value })}
+                    placeholder="Lesson title"
+                    className="rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <input
+                    value={l.duration}
+                    onChange={(e) => update(i, { duration: e.target.value })}
+                    placeholder="5:00"
+                    className="rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <input
+                    value={l.videoUrl ?? ""}
+                    onChange={(e) => update(i, { videoUrl: e.target.value })}
+                    placeholder="YouTube/Vimeo URL"
+                    className="rounded-md border border-border bg-background px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-ring sm:col-span-2"
+                  />
+                  <textarea
+                    rows={2}
+                    value={l.description ?? ""}
+                    onChange={(e) => update(i, { description: e.target.value })}
+                    placeholder="Short description (optional)"
+                    className="rounded-md border border-border bg-background px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-ring sm:col-span-2"
+                  />
+                  <label className="col-span-full flex items-center gap-2 text-xs text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={!!l.preview}
+                      onChange={(e) => update(i, { preview: e.target.checked })}
+                    />
+                    Free preview
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => remove(i)}
+                  className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function QuizzesEditor({
+  quizzes,
+  onChange,
+}: {
+  quizzes: Quiz[];
+  onChange: (quizzes: Quiz[]) => void;
+}) {
+  const updateQuiz = (idx: number, patch: Partial<Quiz>) =>
+    onChange(quizzes.map((q, i) => (i === idx ? { ...q, ...patch } : q)));
+  const addQuiz = () =>
+    onChange([
+      ...quizzes,
+      {
+        id: `q-${Date.now()}`,
+        title: "New quiz",
+        passingScore: 70,
+        questions: [],
+      },
+    ]);
+  const removeQuiz = (idx: number) => onChange(quizzes.filter((_, i) => i !== idx));
+
+  const addQuestion = (qIdx: number) => {
+    const id = `qq-${Date.now()}`;
+    const newQ: QuizQuestion = {
+      id,
+      prompt: "New question",
+      options: [
+        { id: "a", text: "Option A" },
+        { id: "b", text: "Option B" },
+      ],
+      correctOptionId: "a",
+    };
+    updateQuiz(qIdx, { questions: [...quizzes[qIdx].questions, newQ] });
+  };
+  const updateQuestion = (qIdx: number, qqIdx: number, patch: Partial<QuizQuestion>) => {
+    const next = quizzes[qIdx].questions.map((q, i) => (i === qqIdx ? { ...q, ...patch } : q));
+    updateQuiz(qIdx, { questions: next });
+  };
+  const removeQuestion = (qIdx: number, qqIdx: number) => {
+    updateQuiz(qIdx, {
+      questions: quizzes[qIdx].questions.filter((_, i) => i !== qqIdx),
+    });
+  };
+  const addOption = (qIdx: number, qqIdx: number) => {
+    const q = quizzes[qIdx].questions[qqIdx];
+    const nextLetter = String.fromCharCode("a".charCodeAt(0) + q.options.length);
+    updateQuestion(qIdx, qqIdx, {
+      options: [...q.options, { id: nextLetter, text: `Option ${nextLetter.toUpperCase()}` }],
+    });
+  };
+  const updateOption = (qIdx: number, qqIdx: number, oIdx: number, text: string) => {
+    const q = quizzes[qIdx].questions[qqIdx];
+    const opts = q.options.map((o, i) => (i === oIdx ? { ...o, text } : o));
+    updateQuestion(qIdx, qqIdx, { options: opts });
+  };
+  const removeOption = (qIdx: number, qqIdx: number, oIdx: number) => {
+    const q = quizzes[qIdx].questions[qqIdx];
+    if (q.options.length <= 2) return;
+    const opts = q.options.filter((_, i) => i !== oIdx);
+    const correctOptionId = opts.some((o) => o.id === q.correctOptionId)
+      ? q.correctOptionId
+      : opts[0].id;
+    updateQuestion(qIdx, qqIdx, { options: opts, correctOptionId });
+  };
+
+  return (
+    <div className="rounded-lg border border-border p-4">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-foreground">Quizzes</span>
+        <Button type="button" size="sm" variant="outline" onClick={addQuiz}>
+          <Plus className="mr-1 h-3.5 w-3.5" /> Add quiz
+        </Button>
+      </div>
+      {quizzes.length === 0 ? (
+        <p className="mt-3 text-xs text-muted-foreground">No quizzes yet.</p>
+      ) : (
+        <ul className="mt-3 space-y-4">
+          {quizzes.map((quiz, qIdx) => (
+            <li key={quiz.id} className="rounded-md border border-border bg-background p-3">
+              <div className="grid gap-2 sm:grid-cols-[1fr_120px_auto]">
+                <input
+                  value={quiz.title}
+                  onChange={(e) => updateQuiz(qIdx, { title: e.target.value })}
+                  placeholder="Quiz title"
+                  className="rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={quiz.passingScore}
+                  onChange={(e) =>
+                    updateQuiz(qIdx, { passingScore: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })
+                  }
+                  className="rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeQuiz(qIdx)}
+                  className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <textarea
+                rows={2}
+                value={quiz.description ?? ""}
+                onChange={(e) => updateQuiz(qIdx, { description: e.target.value })}
+                placeholder="Quiz description (optional)"
+                className="mt-2 w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-ring"
+              />
+
+              <div className="mt-3 space-y-3">
+                {quiz.questions.map((qq, qqIdx) => (
+                  <div key={qq.id} className="rounded-md border border-border bg-card p-3">
+                    <div className="flex items-start gap-2">
+                      <textarea
+                        rows={2}
+                        value={qq.prompt}
+                        onChange={(e) => updateQuestion(qIdx, qqIdx, { prompt: e.target.value })}
+                        placeholder="Question prompt"
+                        className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeQuestion(qIdx, qqIdx)}
+                        className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <ul className="mt-2 space-y-1.5">
+                      {qq.options.map((opt, oIdx) => (
+                        <li key={opt.id} className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={`correct-${qq.id}`}
+                            checked={qq.correctOptionId === opt.id}
+                            onChange={() => updateQuestion(qIdx, qqIdx, { correctOptionId: opt.id })}
+                            title="Mark as correct"
+                          />
+                          <input
+                            value={opt.text}
+                            onChange={(e) => updateOption(qIdx, qqIdx, oIdx, e.target.value)}
+                            className="flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-ring"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeOption(qIdx, qqIdx, oIdx)}
+                            disabled={qq.options.length <= 2}
+                            className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-30"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => addOption(qIdx, qqIdx)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        + Add option
+                      </button>
+                      <input
+                        value={qq.explanation ?? ""}
+                        onChange={(e) =>
+                          updateQuestion(qIdx, qqIdx, { explanation: e.target.value })
+                        }
+                        placeholder="Explanation (optional)"
+                        className="flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => addQuestion(qIdx)}
+                >
+                  <Plus className="mr-1 h-3.5 w-3.5" /> Add question
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
