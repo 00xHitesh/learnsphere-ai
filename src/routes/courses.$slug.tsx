@@ -327,9 +327,19 @@ function CourseDetailPage() {
                       {i + 1}. {lesson.title}
                     </span>
                     {lesson.preview && (
-                      <Badge variant="outline" className="ml-1 shrink-0">
-                        Preview
-                      </Badge>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewLessonId(lesson.id)}
+                        className="ml-1 shrink-0"
+                        aria-label={`Play preview of ${lesson.title}`}
+                      >
+                        <Badge
+                          variant={previewLessonId === lesson.id ? "default" : "outline"}
+                          className="cursor-pointer"
+                        >
+                          Preview
+                        </Badge>
+                      </button>
                     )}
                   </div>
                   <span className="shrink-0 text-xs text-muted-foreground">{lesson.duration}</span>
@@ -341,13 +351,28 @@ function CourseDetailPage() {
         <div>
           <h2 className="font-serif text-2xl text-foreground">Preview</h2>
           <div className="mt-4 aspect-video overflow-hidden rounded-lg border border-border bg-black">
-            <iframe
-              title="Course preview"
-              className="h-full w-full"
-              src={course.lessons[0]?.videoUrl}
-              allowFullScreen
-            />
+            {previewEmbed ? (
+              <iframe
+                key={previewEmbed}
+                title={`Preview: ${activePreviewLesson?.title ?? "Course"}`}
+                className="h-full w-full"
+                src={previewEmbed}
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                No preview available
+              </div>
+            )}
           </div>
+          {activePreviewLesson && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Now previewing:{" "}
+              <span className="text-foreground">{activePreviewLesson.title}</span>
+            </p>
+          )}
           <h3 className="font-serif mt-10 text-xl text-foreground">Instructor</h3>
           <div className="mt-3 rounded-lg border border-border bg-card p-4">
             <div className="font-medium text-foreground">{course.instructor}</div>
