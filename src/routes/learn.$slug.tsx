@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-store";
 import { useCourse } from "@/lib/query/courses";
 import { useEnrollment, useEnroll, useToggleLessonComplete } from "@/lib/query/enrollments";
+import { CertificateButton } from "@/components/CertificateButton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,11 +12,13 @@ import {
   CheckCircle2,
   Circle,
   ClipboardList,
+  LayoutDashboard,
   Play,
   RotateCcw,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { Quiz } from "@/lib/types";
+import type { Course, Quiz, User } from "@/lib/types";
 
 type LearnSearch = { lesson?: string; quiz?: string };
 
@@ -64,6 +67,13 @@ function LearnPage() {
   const enrollMutation = useEnroll();
   const toggleLesson = useToggleLessonComplete();
 
+  const [showCompletion, setShowCompletion] = useState(false);
+  const prevPctRef = useRef<number | null>(null);
+
+  const total = course?.lessons.length ?? 0;
+  const done = enrollment?.completedLessonIds.length ?? 0;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+
   // Default to first lesson if none selected
   const activeLessonId = search.lesson ?? course?.lessons[0]?.id;
   const activeQuizId = search.quiz;
@@ -78,6 +88,19 @@ function LearnPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [course?.id, currentUser?.id, enrollment]);
+
+  // Show completion screen when all lessons are marked done
+  useEffect(() => {
+    if (enrollment === undefined) return; // still loading
+    if (prevPctRef.current === null) {
+      prevPctRef.current = pct; // initialise without triggering
+      return;
+    }
+    if (pct === 100 && prevPctRef.current < 100) {
+      setShowCompletion(true);
+    }
+    prevPctRef.current = pct;
+  }, [pct, enrollment]);
 
   if (isLoading) {
     return (
@@ -126,9 +149,6 @@ function LearnPage() {
   }
 
   const completedIds = enrollment?.completedLessonIds ?? [];
-  const total = course.lessons.length;
-  const done = completedIds.length;
-  const pct = total ? Math.round((done / total) * 100) : 0;
 
   const lessonIndex = course.lessons.findIndex((l) => l.id === activeLessonId);
   const prevLesson = lessonIndex > 0 ? course.lessons[lessonIndex - 1] : null;
@@ -323,6 +343,79 @@ function LearnPage() {
           </div>
         )}
       </main>
+
+      {showCompletion && currentUser && (
+        <CompletionOverlay
+          user={currentUser}
+          course={course}
+          onClose={() => setShowCompletion(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function CompletionOverlay({
+  user,
+  course,
+  onClose,
+}: {
+  user: User;
+  course: Course;
+  onClose: () => void;
+}) {
+  const navigate = useNavigate();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
+      <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-2xl">
+        {/* Dismiss */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        {/* Cover + confetti-ish decoration */}
+        <div className="flex flex-col items-center text-center">
+          <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-primary/20 bg-primary/10 text-5xl">
+            {course.cover}
+          </div>
+          <div className="mt-1 text-2xl">🎉</div>
+
+          <h2 className="font-serif mt-4 text-3xl text-foreground">Course Complete!</h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            Congratulations, <span className="font-medium text-foreground">{user.name.split(" ")[0]}</span>!
+            You've finished every lesson in{" "}
+            <span className="font-medium text-foreground">{course.title}</span>.
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-8 flex flex-col gap-3">
+          <CertificateButton
+            userName={user.name}
+            courseTitle={course.title}
+            instructor={course.instructor}
+            className="w-full"
+          />
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => navigate({ to: "/dashboard" })}
+          >
+            <LayoutDashboard className="mr-2 h-4 w-4" /> View Dashboard
+          </Button>
+          <button
+            onClick={onClose}
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            Keep reviewing lessons
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

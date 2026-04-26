@@ -3,8 +3,9 @@ import { useAuth } from "@/lib/auth-store";
 import { useCourses } from "@/lib/query/courses";
 import { useMyEnrollments } from "@/lib/query/enrollments";
 import { useMyTransactions } from "@/lib/query/transactions";
+import { CertificateButton } from "@/components/CertificateButton";
 import { Button } from "@/components/ui/button";
-import { Bot } from "lucide-react";
+import { Bot, CheckCircle2 } from "lucide-react";
 import type { Course, Enrollment } from "@/lib/types";
 
 export const Route = createFileRoute("/dashboard")({ component: DashboardPage });
@@ -33,9 +34,12 @@ function DashboardPage() {
   const myCourses = enrollments
     .map((e) => {
       const course = courses.find((c) => c.id === e.courseId);
-      return course ? { course, enrollment: e } : null;
+      return course ? { course, enrollment: e, pct: getProgress(e, course.lessons.length) } : null;
     })
-    .filter((x): x is { course: Course; enrollment: Enrollment } => !!x);
+    .filter((x): x is { course: Course; enrollment: Enrollment; pct: number } => !!x);
+
+  const inProgress = myCourses.filter((x) => x.pct < 100);
+  const completed = myCourses.filter((x) => x.pct === 100);
 
   const recommended = courses
     .filter(
@@ -44,6 +48,12 @@ function DashboardPage() {
         (currentUser.interests.length === 0 || currentUser.interests.includes(c.category)),
     )
     .slice(0, 3);
+
+  const subtitleParts: string[] = [];
+  if (inProgress.length > 0)
+    subtitleParts.push(`${inProgress.length} in progress`);
+  if (completed.length > 0)
+    subtitleParts.push(`${completed.length} completed`);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
@@ -54,13 +64,14 @@ function DashboardPage() {
         <p className="mt-2 text-muted-foreground">
           {myCourses.length === 0
             ? "You haven't enrolled in anything yet. Start with something small."
-            : `You have ${myCourses.length} course${myCourses.length === 1 ? "" : "s"} in progress.`}
+            : subtitleParts.join(" · ")}
         </p>
       </div>
 
+      {/* ── In Progress ───────────────────────────────────────── */}
       <section>
-        <h2 className="font-serif text-2xl text-foreground">My learning</h2>
-        {myCourses.length === 0 ? (
+        <h2 className="font-serif text-2xl text-foreground">In Progress</h2>
+        {inProgress.length === 0 ? (
           <div className="mt-4 rounded-lg border border-dashed border-border p-10 text-center">
             <p className="text-muted-foreground">No enrollments yet.</p>
             <Button asChild className="mt-4">
@@ -69,38 +80,30 @@ function DashboardPage() {
           </div>
         ) : (
           <ul className="mt-6 grid gap-4 sm:grid-cols-2">
-            {myCourses.map(({ course, enrollment }) => {
-              const pct = getProgress(enrollment, course.lessons.length);
-              return (
-                <li key={course.id} className="rounded-xl border border-border bg-card p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="grid h-14 w-14 place-items-center rounded-md bg-primary/10 font-serif text-2xl text-primary">
-                      {course.cover}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <Link
-                        to="/courses/$slug"
-                        params={{ slug: course.slug }}
-                        className="font-serif text-lg text-foreground hover:underline"
-                      >
-                        {course.title}
-                      </Link>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {course.instructor} • {course.lessons.length} lessons
-                      </div>
-                      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-                        <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">{pct}% complete</div>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
+            {inProgress.map(({ course, pct }) => (
+              <CourseProgressCard key={course.id} course={course} pct={pct} />
+            ))}
           </ul>
         )}
       </section>
 
+      {/* ── Completed ─────────────────────────────────────────── */}
+      {completed.length > 0 && (
+        <section className="mt-12">
+          <h2 className="font-serif text-2xl text-foreground">Completed</h2>
+          <ul className="mt-6 grid gap-4 sm:grid-cols-2">
+            {completed.map(({ course }) => (
+              <CourseCompletedCard
+                key={course.id}
+                course={course}
+                userName={currentUser.name}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* ── Recommendations ───────────────────────────────────── */}
       {recommended.length > 0 && (
         <section className="mt-16">
           <div className="mb-4">
@@ -127,10 +130,11 @@ function DashboardPage() {
         </section>
       )}
 
+      {/* ── Transactions ──────────────────────────────────────── */}
       {transactions.length > 0 && (
         <section className="mt-16">
           <h2 className="font-serif text-2xl text-foreground">Transactions</h2>
-          <div className="mt-4 overflow-hidden rounded-lg border border-border">
+          <div className="mt-4 overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-sm">
               <thead className="bg-secondary text-left text-xs text-muted-foreground">
                 <tr>
@@ -160,5 +164,84 @@ function DashboardPage() {
         </section>
       )}
     </div>
+  );
+}
+
+function CourseProgressCard({ course, pct }: { course: Course; pct: number }) {
+  return (
+    <li className="rounded-xl border border-border bg-card p-5">
+      <div className="flex items-start gap-4">
+        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 font-serif text-2xl text-primary">
+          {course.cover}
+        </div>
+        <div className="min-w-0 flex-1">
+          <Link
+            to="/courses/$slug"
+            params={{ slug: course.slug }}
+            className="font-serif text-lg text-foreground hover:underline"
+          >
+            {course.title}
+          </Link>
+          <div className="mt-1 text-xs text-muted-foreground">
+            {course.instructor} · {course.lessons.length} lessons
+          </div>
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+            <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="mt-1 flex items-center justify-between gap-2">
+            <span className="text-xs text-muted-foreground">{pct}% complete</span>
+            <Link
+              to="/learn/$slug"
+              params={{ slug: course.slug }}
+              className="text-xs text-primary hover:underline"
+            >
+              Continue →
+            </Link>
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function CourseCompletedCard({
+  course,
+  userName,
+}: {
+  course: Course;
+  userName: string;
+}) {
+  return (
+    <li className="rounded-xl border border-primary/20 bg-card p-5">
+      <div className="flex items-start gap-4">
+        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 font-serif text-2xl text-primary">
+          {course.cover}
+        </div>
+        <div className="min-w-0 flex-1">
+          <Link
+            to="/courses/$slug"
+            params={{ slug: course.slug }}
+            className="font-serif text-lg text-foreground hover:underline"
+          >
+            {course.title}
+          </Link>
+          <div className="mt-1 text-xs text-muted-foreground">
+            {course.instructor} · {course.lessons.length} lessons
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+              <CheckCircle2 className="h-3 w-3" /> Completed
+            </span>
+            <CertificateButton
+              userName={userName}
+              courseTitle={course.title}
+              instructor={course.instructor}
+              variant="outline"
+              size="sm"
+            />
+          </div>
+        </div>
+      </div>
+    </li>
   );
 }
