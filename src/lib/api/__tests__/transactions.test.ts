@@ -73,6 +73,7 @@ describe("transactionsApi.purchase", () => {
       userId: USER_ID,
       courseId: course.id,
       completedLessonIds: [],
+      passedQuizIds: [],
       enrolledAt: "",
     });
     await transactionsApi.purchase(USER_ID, course.id);

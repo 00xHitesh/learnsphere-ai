@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-store";
 import { useCourse } from "@/lib/query/courses";
-import { useEnrollment, useEnroll, useToggleLessonComplete } from "@/lib/query/enrollments";
+import { useEnrollment, useEnroll, useToggleLessonComplete, useMarkQuizPassed } from "@/lib/query/enrollments";
 import { CertificateButton } from "@/components/CertificateButton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,12 +13,41 @@ import {
   Circle,
   ClipboardList,
   LayoutDashboard,
+  Play,
   RotateCcw,
   X,
 } from "lucide-react";
 import { CourseIcon } from "@/components/CourseIcon";
 import { toast } from "sonner";
 import type { Course, Quiz, User } from "@/lib/types";
+
+function toEmbedUrl(url?: string): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (u.hostname === "youtu.be") return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+    if (u.hostname.includes("youtube.com")) {
+      if (u.pathname === "/watch") {
+        const id = u.searchParams.get("v");
+        if (id) return `https://www.youtube.com/embed/${id}`;
+      }
+      if (u.pathname.startsWith("/embed/")) return url;
+    }
+    if (u.hostname.includes("vimeo.com")) {
+      const id = u.pathname.split("/").filter(Boolean)[0];
+      if (id) return `https://player.vimeo.com/video/${id}`;
+    }
+    return url;
+  } catch {
+    return url;
+  }
+}
+
+function formatElapsed(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
 
 type LearnSearch = { lesson?: string; quiz?: string };
 
@@ -41,19 +70,30 @@ function LearnPage() {
   const { data: enrollment } = useEnrollment(currentUser?.id, course?.id ?? "");
   const enrollMutation = useEnroll();
   const toggleLesson = useToggleLessonComplete();
+  const markQuizPassed = useMarkQuizPassed();
 
   const [showCompletion, setShowCompletion] = useState(false);
-  const prevPctRef = useRef<number | null>(null);
+  const completionShown = useRef(false);
+  const lessonStartTime = useRef<number | null>(null);
 
   const total = course?.lessons.length ?? 0;
   const done = enrollment?.completedLessonIds.length ?? 0;
   const pct = total ? Math.round((done / total) * 100) : 0;
+
+  const passedQuizIds = enrollment?.passedQuizIds ?? [];
+  const allQuizzesPassed =
+    !course?.quizzes?.length || course.quizzes.every((q) => passedQuizIds.includes(q.id));
 
   // Default to first lesson if none selected
   const activeLessonId = search.lesson ?? course?.lessons[0]?.id;
   const activeQuizId = search.quiz;
   const lesson = course?.lessons.find((l) => l.id === activeLessonId);
   const quiz = course?.quizzes?.find((q) => q.id === activeQuizId);
+
+  // Reset lesson timer whenever the active lesson changes
+  useEffect(() => {
+    lessonStartTime.current = Date.now();
+  }, [activeLessonId]);
 
   // Auto-enroll for free courses on entry
   useEffect(() => {
@@ -64,18 +104,14 @@ function LearnPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [course?.id, currentUser?.id, enrollment]);
 
-  // Show completion screen when all lessons are marked done
+  // Show completion screen only once, when every lesson AND every quiz is done
   useEffect(() => {
-    if (enrollment === undefined) return; // still loading
-    if (prevPctRef.current === null) {
-      prevPctRef.current = pct; // initialise without triggering
-      return;
-    }
-    if (pct === 100 && prevPctRef.current < 100) {
+    if (enrollment === undefined) return;
+    if (!completionShown.current && pct === 100 && allQuizzesPassed) {
+      completionShown.current = true;
       setShowCompletion(true);
     }
-    prevPctRef.current = pct;
-  }, [pct, enrollment]);
+  }, [pct, allQuizzesPassed, enrollment]);
 
   if (isLoading) {
     return (
@@ -194,6 +230,7 @@ function LearnPage() {
               <ol className="space-y-0.5">
                 {course.quizzes.map((q) => {
                   const isActive = q.id === activeQuizId;
+                  const isPassed = passedQuizIds.includes(q.id);
                   return (
                     <li key={q.id}>
                       <button
@@ -204,7 +241,11 @@ function LearnPage() {
                             : "text-foreground hover:bg-secondary"
                         }`}
                       >
-                        <ClipboardList className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        {isPassed ? (
+                          <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                        ) : (
+                          <ClipboardList className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        )}
                         <span className="min-w-0 flex-1 truncate">{q.title}</span>
                         <span className="shrink-0 text-xs text-muted-foreground">
                           {q.questions.length}q
@@ -214,6 +255,11 @@ function LearnPage() {
                   );
                 })}
               </ol>
+              {pct === 100 && !allQuizzesPassed && (
+                <p className="mt-2 px-2 text-xs text-amber-600 dark:text-amber-400">
+                  Pass all quizzes to unlock your certificate.
+                </p>
+              )}
             </>
           )}
         </div>
@@ -225,6 +271,9 @@ function LearnPage() {
           <QuizView
             quiz={quiz}
             onExit={() => goLesson(activeLessonId ?? course.lessons[0].id)}
+            onPass={(quizId) =>
+              markQuizPassed.mutate({ userId: currentUser.id, courseId: course.id, quizId })
+            }
           />
         ) : lesson ? (
           <article>
@@ -241,28 +290,59 @@ function LearnPage() {
             </div>
             <h1 className="font-serif text-3xl text-foreground">{lesson.title}</h1>
 
-            <div className="mt-5 min-h-45 rounded-xl border border-border bg-card p-6 sm:p-8">
-              {lesson.description ? (
-                <p className="text-base leading-relaxed text-foreground">{lesson.description}</p>
+            {/* Video player */}
+            <div className="mt-5 aspect-video w-full overflow-hidden rounded-xl border border-border bg-black">
+              {toEmbedUrl(lesson.videoUrl) ? (
+                <iframe
+                  key={lesson.id}
+                  title={lesson.title}
+                  className="h-full w-full"
+                  src={toEmbedUrl(lesson.videoUrl)!}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
               ) : (
-                <p className="text-sm text-muted-foreground">No description available for this lesson.</p>
+                <div className="grid h-full place-items-center text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Play className="h-4 w-4" /> No video for this lesson
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Blog-post description */}
+            <div className="mt-6 border-t border-border pt-6">
+              {lesson.description ? (
+                <div className="prose prose-sm max-w-none dark:prose-invert sm:prose-base">
+                  <p className="text-base leading-8 text-foreground">{lesson.description}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No notes for this lesson.</p>
               )}
             </div>
 
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
               <Button
                 variant="outline"
-                onClick={() =>
+                onClick={() => {
+                  const elapsed = lessonStartTime.current
+                    ? Math.round((Date.now() - lessonStartTime.current) / 1000)
+                    : null;
                   toggleLesson.mutate(
                     { userId: currentUser.id, courseId: course.id, lessonId: lesson.id },
                     {
-                      onSuccess: () =>
-                        toast.success(
-                          completedIds.includes(lesson.id) ? "Marked incomplete" : "Lesson complete",
-                        ),
+                      onSuccess: () => {
+                        if (!completedIds.includes(lesson.id) && elapsed != null) {
+                          toast.success(`Lesson complete — ${formatElapsed(elapsed)}`);
+                        } else if (completedIds.includes(lesson.id)) {
+                          toast.success("Marked incomplete");
+                        } else {
+                          toast.success("Lesson complete");
+                        }
+                      },
                     },
-                  )
-                }
+                  );
+                }}
               >
                 {completedIds.includes(lesson.id) ? (
                   <>
@@ -284,11 +364,57 @@ function LearnPage() {
                   <ArrowLeft className="mr-2 h-4 w-4" /> Previous
                 </Button>
                 {nextLesson ? (
-                  <Button onClick={() => goLesson(nextLesson.id)}>
+                  <Button
+                    onClick={() => {
+                      if (!completedIds.includes(lesson.id)) {
+                        const elapsed = lessonStartTime.current
+                          ? Math.round((Date.now() - lessonStartTime.current) / 1000)
+                          : null;
+                        toggleLesson.mutate(
+                          { userId: currentUser.id, courseId: course.id, lessonId: lesson.id },
+                          {
+                            onSuccess: () => {
+                              toast.success(
+                                elapsed != null
+                                  ? `Lesson complete — ${formatElapsed(elapsed)}`
+                                  : "Lesson complete",
+                              );
+                              goLesson(nextLesson.id);
+                            },
+                          },
+                        );
+                      } else {
+                        goLesson(nextLesson.id);
+                      }
+                    }}
+                  >
                     Next <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 ) : course.quizzes?.length > 0 ? (
-                  <Button onClick={() => goQuiz(course.quizzes[0].id)}>
+                  <Button
+                    onClick={() => {
+                      if (!completedIds.includes(lesson.id)) {
+                        const elapsed = lessonStartTime.current
+                          ? Math.round((Date.now() - lessonStartTime.current) / 1000)
+                          : null;
+                        toggleLesson.mutate(
+                          { userId: currentUser.id, courseId: course.id, lessonId: lesson.id },
+                          {
+                            onSuccess: () => {
+                              toast.success(
+                                elapsed != null
+                                  ? `Lesson complete — ${formatElapsed(elapsed)}`
+                                  : "Lesson complete",
+                              );
+                              goQuiz(course.quizzes[0].id);
+                            },
+                          },
+                        );
+                      } else {
+                        goQuiz(course.quizzes[0].id);
+                      }
+                    }}
+                  >
                     Take quiz <ClipboardList className="ml-2 h-4 w-4" />
                   </Button>
                 ) : null}
@@ -378,7 +504,15 @@ function CompletionOverlay({
   );
 }
 
-function QuizView({ quiz, onExit }: { quiz: Quiz; onExit: () => void }) {
+function QuizView({
+  quiz,
+  onExit,
+  onPass,
+}: {
+  quiz: Quiz;
+  onExit: () => void;
+  onPass: (quizId: string) => void;
+}) {
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [submitted, setSubmitted] = useState(false);
 
@@ -398,6 +532,11 @@ function QuizView({ quiz, onExit }: { quiz: Quiz; onExit: () => void }) {
   const reset = () => {
     setAnswers({});
     setSubmitted(false);
+  };
+
+  const handleSubmit = () => {
+    setSubmitted(true);
+    if (score >= quiz.passingScore) onPass(quiz.id);
   };
 
   const toggle = (qId: string, optId: string, isMulti: boolean) => {
@@ -513,7 +652,7 @@ function QuizView({ quiz, onExit }: { quiz: Quiz; onExit: () => void }) {
           <Button variant="outline" onClick={onExit}>
             Cancel
           </Button>
-          <Button onClick={() => setSubmitted(true)} disabled={!allAnswered}>
+          <Button onClick={handleSubmit} disabled={!allAnswered}>
             Submit quiz
           </Button>
         </div>

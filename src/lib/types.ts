@@ -76,6 +76,7 @@ export interface Enrollment {
   userId: string;
   courseId: string;
   completedLessonIds: string[];
+  passedQuizIds: string[];
   enrolledAt: string;
 }
 

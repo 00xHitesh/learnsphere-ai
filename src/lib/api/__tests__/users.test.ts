@@ -46,6 +46,7 @@ describe("usersApi.delete", () => {
       userId: "u-demo",
       courseId: db.courses[0].id,
       completedLessonIds: [],
+      passedQuizIds: [],
       enrolledAt: "",
     });
     await usersApi.delete("u-demo");
@@ -77,6 +78,7 @@ describe("usersApi.delete", () => {
       userId: "u-admin",
       courseId: db.courses[0].id,
       completedLessonIds: [],
+      passedQuizIds: [],
       enrolledAt: "",
     });
     await usersApi.delete("u-demo");

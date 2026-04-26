@@ -277,11 +277,13 @@ CREATE INDEX idx_quiz_attempts_user_quiz ON quiz_attempts (user_id, quiz_id, att
 -- =============================================================================
 
 CREATE TABLE enrollments (
-  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id     UUID        NOT NULL REFERENCES users   (id) ON DELETE CASCADE,
-  course_id   UUID        NOT NULL REFERENCES courses (id) ON DELETE CASCADE,
-  enrolled_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID        NOT NULL REFERENCES users   (id) ON DELETE CASCADE,
+  course_id       UUID        NOT NULL REFERENCES courses (id) ON DELETE CASCADE,
+  -- Quiz IDs the student has passed; certificate gated on this being complete
+  passed_quiz_ids TEXT[]      NOT NULL DEFAULT '{}',
+  enrolled_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (user_id, course_id)
 );
 
@@ -293,9 +295,11 @@ CREATE TRIGGER trg_enrollments_updated_at
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- completedLessonIds string[] normalised to one row per completed lesson
+-- time_spent_s records how long the student spent before marking it done
 CREATE TABLE enrollment_lesson_progress (
   enrollment_id UUID        NOT NULL REFERENCES enrollments (id) ON DELETE CASCADE,
   lesson_id     UUID        NOT NULL REFERENCES lessons     (id) ON DELETE CASCADE,
+  time_spent_s  INTEGER     NOT NULL DEFAULT 0 CHECK (time_spent_s >= 0),
   completed_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (enrollment_id, lesson_id)
 );

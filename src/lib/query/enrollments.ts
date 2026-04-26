@@ -57,3 +57,22 @@ export function useToggleLessonComplete() {
     },
   });
 }
+
+export function useMarkQuizPassed() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      userId,
+      courseId,
+      quizId,
+    }: {
+      userId: string;
+      courseId: string;
+      quizId: string;
+    }) => enrollmentsApi.markQuizPassed(userId, courseId, quizId),
+    onSuccess: (_, { userId, courseId }) => {
+      qc.invalidateQueries({ queryKey: qk.enrollments.detail(userId, courseId) });
+      qc.invalidateQueries({ queryKey: qk.enrollments.byUser(userId) });
+    },
+  });
+}

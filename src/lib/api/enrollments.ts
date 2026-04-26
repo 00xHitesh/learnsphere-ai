@@ -23,6 +23,7 @@ export const enrollmentsApi = {
         userId,
         courseId,
         completedLessonIds: [],
+        passedQuizIds: [],
         enrolledAt: new Date().toISOString(),
       };
       db.enrollments.push(enrollment);
@@ -37,6 +38,16 @@ export const enrollmentsApi = {
       e.completedLessonIds = has
         ? e.completedLessonIds.filter((id) => id !== lessonId)
         : [...e.completedLessonIds, lessonId];
+      return { ...e };
+    }),
+
+  markQuizPassed: (userId: string, courseId: string, quizId: string) =>
+    mockRequest(() => {
+      const e = db.enrollments.find((e) => e.userId === userId && e.courseId === courseId);
+      if (!e) return null;
+      if (!e.passedQuizIds.includes(quizId)) {
+        e.passedQuizIds = [...e.passedQuizIds, quizId];
+      }
       return { ...e };
     }),
 };

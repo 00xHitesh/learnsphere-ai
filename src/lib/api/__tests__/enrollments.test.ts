@@ -23,8 +23,8 @@ describe("enrollmentsApi.listByUser", () => {
 
   it("returns only the enrollments for the specified user", async () => {
     db.enrollments.push(
-      { id: "e-1", userId: USER_ID, courseId: COURSE_ID(), completedLessonIds: [], enrolledAt: "" },
-      { id: "e-2", userId: "u-other", courseId: COURSE_ID(), completedLessonIds: [], enrolledAt: "" },
+      { id: "e-1", userId: USER_ID, courseId: COURSE_ID(), completedLessonIds: [], passedQuizIds: [], enrolledAt: "" },
+      { id: "e-2", userId: "u-other", courseId: COURSE_ID(), completedLessonIds: [], passedQuizIds: [], enrolledAt: "" },
     );
     const result = await enrollmentsApi.listByUser(USER_ID);
     expect(result.length).toBe(1);
@@ -39,6 +39,7 @@ describe("enrollmentsApi.get", () => {
       userId: USER_ID,
       courseId: COURSE_ID(),
       completedLessonIds: [],
+      passedQuizIds: [],
       enrolledAt: "",
     });
     const result = await enrollmentsApi.get(USER_ID, COURSE_ID());
@@ -87,6 +88,27 @@ describe("enrollmentsApi.toggleLessonComplete", () => {
 
   it("returns null when user is not enrolled", async () => {
     const result = await enrollmentsApi.toggleLessonComplete(USER_ID, COURSE_ID(), "l-0");
+    expect(result).toBeNull();
+  });
+});
+
+describe("enrollmentsApi.markQuizPassed", () => {
+  it("adds the quiz id to passedQuizIds", async () => {
+    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
+    const result = await enrollmentsApi.markQuizPassed(USER_ID, COURSE_ID(), "q-1");
+    expect(result?.passedQuizIds).toContain("q-1");
+  });
+
+  it("is idempotent — does not add duplicate quiz ids", async () => {
+    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
+    await enrollmentsApi.markQuizPassed(USER_ID, COURSE_ID(), "q-1");
+    await enrollmentsApi.markQuizPassed(USER_ID, COURSE_ID(), "q-1");
+    const e = db.enrollments.find((e) => e.userId === USER_ID);
+    expect(e?.passedQuizIds.filter((id) => id === "q-1").length).toBe(1);
+  });
+
+  it("returns null when user is not enrolled", async () => {
+    const result = await enrollmentsApi.markQuizPassed(USER_ID, COURSE_ID(), "q-1");
     expect(result).toBeNull();
   });
 });

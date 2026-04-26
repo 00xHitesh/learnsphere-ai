@@ -33,6 +33,7 @@ export const transactionsApi = {
         userId,
         courseId,
         completedLessonIds: [],
+        passedQuizIds: [],
         enrolledAt: new Date().toISOString(),
       };
       db.enrollments.push(enrollment);
