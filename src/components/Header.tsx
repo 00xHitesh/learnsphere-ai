@@ -1,9 +1,39 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Logo } from "./Logo";
 import { useAuth } from "@/lib/auth-store";
+import { useTheme, type Theme } from "@/lib/theme-store";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { Menu, Moon, Sun, Monitor } from "lucide-react";
 import { useState } from "react";
+
+const THEME_CYCLE: Theme[] = ["light", "dark", "system"];
+
+const THEME_ICON: Record<Theme, React.ReactNode> = {
+  light: <Sun className="h-4 w-4" />,
+  dark: <Moon className="h-4 w-4" />,
+  system: <Monitor className="h-4 w-4" />,
+};
+
+const THEME_LABEL: Record<Theme, string> = {
+  light: "Light mode",
+  dark: "Dark mode",
+  system: "System theme",
+};
+
+function ThemeToggle({ className }: { className?: string }) {
+  const { theme, setTheme } = useTheme();
+  const next = THEME_CYCLE[(THEME_CYCLE.indexOf(theme) + 1) % THEME_CYCLE.length];
+  return (
+    <button
+      onClick={() => setTheme(next)}
+      aria-label={`Switch to ${THEME_LABEL[next]}`}
+      title={THEME_LABEL[theme]}
+      className={`rounded-md p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground ${className ?? ""}`}
+    >
+      {THEME_ICON[theme]}
+    </button>
+  );
+}
 
 export function Header() {
   const { currentUser, logout } = useAuth();
@@ -23,6 +53,7 @@ export function Header() {
           </nav>
         </div>
         <div className="hidden items-center gap-2 md:flex">
+          <ThemeToggle />
           {currentUser ? (
             <>
               <Button asChild variant="ghost" size="sm"><Link to="/dashboard">Dashboard</Link></Button>
@@ -40,9 +71,12 @@ export function Header() {
             </>
           )}
         </div>
-        <button className="md:hidden" onClick={() => setOpen((o) => !o)} aria-label="Open menu">
-          <Menu className="h-5 w-5" />
-        </button>
+        <div className="flex items-center gap-1 md:hidden">
+          <ThemeToggle />
+          <button onClick={() => setOpen((o) => !o)} aria-label="Open menu">
+            <Menu className="h-5 w-5" />
+          </button>
+        </div>
       </div>
       {open && (
         <div className="border-t border-border/60 bg-background md:hidden">

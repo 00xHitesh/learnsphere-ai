@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/lib/auth-store";
+import { ThemeProvider, THEME_SCRIPT } from "@/lib/theme-store";
 import { Layout } from "@/components/Layout";
 import { Toaster } from "sonner";
 
@@ -73,9 +74,13 @@ export const Route = createRootRoute({
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning allows the dark class to be set by the
+    // inline script before React hydrates without triggering a warning.
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        {/* Blocking script: sets dark class before first paint to prevent flash */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body>
         {children}
@@ -96,12 +101,14 @@ function RootComponent() {
   );
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Layout>
-          <Outlet />
-        </Layout>
-        <Toaster position="top-center" richColors />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Layout>
+            <Outlet />
+          </Layout>
+          <Toaster position="top-center" richColors />
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
