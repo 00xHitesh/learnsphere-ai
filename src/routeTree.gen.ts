@@ -17,6 +17,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AboutRouteImport } from './routes/about'
@@ -67,6 +68,11 @@ const CoursesRoute = CoursesRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin-login',
+  path: '/admin-login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
+  '/admin-login': typeof AdminLoginRoute
   '/contact': typeof ContactRoute
   '/courses': typeof CoursesRouteWithChildren
   '/dashboard': typeof DashboardRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
+  '/admin-login': typeof AdminLoginRoute
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -172,6 +180,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
+  '/admin-login': typeof AdminLoginRoute
   '/contact': typeof ContactRoute
   '/courses': typeof CoursesRouteWithChildren
   '/dashboard': typeof DashboardRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/admin'
+    | '/admin-login'
     | '/contact'
     | '/courses'
     | '/dashboard'
@@ -216,6 +226,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/admin'
+    | '/admin-login'
     | '/contact'
     | '/dashboard'
     | '/forgot-password'
@@ -236,6 +247,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/admin'
+    | '/admin-login'
     | '/contact'
     | '/courses'
     | '/dashboard'
@@ -258,6 +270,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRouteWithChildren
+  AdminLoginRoute: typeof AdminLoginRoute
   ContactRoute: typeof ContactRoute
   CoursesRoute: typeof CoursesRouteWithChildren
   DashboardRoute: typeof DashboardRoute
@@ -326,6 +339,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-login': {
+      id: '/admin-login'
+      path: '/admin-login'
+      fullPath: '/admin-login'
+      preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -440,6 +460,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AccountRoute: AccountRoute,
   AdminRoute: AdminRouteWithChildren,
+  AdminLoginRoute: AdminLoginRoute,
   ContactRoute: ContactRoute,
   CoursesRoute: CoursesRouteWithChildren,
   DashboardRoute: DashboardRoute,

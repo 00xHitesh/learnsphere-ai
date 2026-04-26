@@ -13,9 +13,11 @@ function AdminLayout() {
     return (
       <div className="mx-auto max-w-md px-6 py-24 text-center">
         <h1 className="font-serif text-2xl">Admin access required</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Sign in as admin@lumen.io / admin123.</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Sign in through the admin portal to continue.
+        </p>
         <Button asChild className="mt-6">
-          <Link to="/login">Sign in</Link>
+          <Link to="/admin-login">Go to admin login</Link>
         </Button>
       </div>
     );
