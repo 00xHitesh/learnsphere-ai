@@ -30,6 +30,7 @@ const blank = (): Course => ({
   instructorBio: "",
   cover: "✦",
   lessons: [],
+  quizzes: [],
   reviews: [],
   tags: [],
   approved: true,
