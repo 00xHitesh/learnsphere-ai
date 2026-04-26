@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth-store";
 import { useCourse, useCourses } from "@/lib/query/courses";
 import {
@@ -37,6 +38,31 @@ function formatDuration(lessons: Lesson[]): string {
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+/** Convert any YouTube/Vimeo URL into an embeddable URL */
+function toEmbedUrl(url?: string): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (u.hostname === "youtu.be") {
+      return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+    }
+    if (u.hostname.includes("youtube.com")) {
+      if (u.pathname === "/watch") {
+        const id = u.searchParams.get("v");
+        if (id) return `https://www.youtube.com/embed/${id}`;
+      }
+      if (u.pathname.startsWith("/embed/")) return url;
+    }
+    if (u.hostname.includes("vimeo.com")) {
+      const id = u.pathname.split("/").filter(Boolean)[0];
+      if (id) return `https://player.vimeo.com/video/${id}`;
+    }
+    return url;
+  } catch {
+    return null;
+  }
 }
 
 function CourseDetailPage() {
