@@ -80,8 +80,8 @@ describe("CourseCard", () => {
     expect(link.getAttribute("href")).toContain("intro-to-design");
   });
 
-  it("renders the cover emoji", () => {
-    render(<CourseCard course={base} />);
-    expect(screen.getByText("✦")).toBeInTheDocument();
+  it("renders a category icon in the cover area", () => {
+    const { container } = render(<CourseCard course={base} />);
+    expect(container.querySelector("svg")).toBeInTheDocument();
   });
 });

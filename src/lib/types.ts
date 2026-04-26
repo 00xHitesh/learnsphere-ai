@@ -29,7 +29,7 @@ export interface QuizQuestion {
   id: string;
   prompt: string;
   options: QuizOption[];
-  correctOptionId: string;
+  correctOptionIds: string[];
   explanation?: string;
 }
 

@@ -6,6 +6,7 @@ import { useMyTransactions } from "@/lib/query/transactions";
 import { CertificateButton } from "@/components/CertificateButton";
 import { Button } from "@/components/ui/button";
 import { Bot, CheckCircle2 } from "lucide-react";
+import { CourseIcon } from "@/components/CourseIcon";
 import type { Course, Enrollment } from "@/lib/types";
 
 export const Route = createFileRoute("/dashboard")({ component: DashboardPage });
@@ -171,8 +172,8 @@ function CourseProgressCard({ course, pct }: { course: Course; pct: number }) {
   return (
     <li className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-start gap-4">
-        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 font-serif text-2xl text-primary">
-          {course.cover}
+        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+          <CourseIcon category={course.category} className="h-7 w-7" />
         </div>
         <div className="min-w-0 flex-1">
           <Link
@@ -214,8 +215,8 @@ function CourseCompletedCard({
   return (
     <li className="rounded-xl border border-primary/20 bg-card p-5">
       <div className="flex items-start gap-4">
-        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 font-serif text-2xl text-primary">
-          {course.cover}
+        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+          <CourseIcon category={course.category} className="h-7 w-7" />
         </div>
         <div className="min-w-0 flex-1">
           <Link

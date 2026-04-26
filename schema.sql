@@ -229,13 +229,14 @@ CREATE TABLE quizzes (
 CREATE INDEX idx_quizzes_course_id ON quizzes (course_id);
 
 CREATE TABLE quiz_questions (
-  id                UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
-  quiz_id           UUID     NOT NULL REFERENCES quizzes (id) ON DELETE CASCADE,
-  prompt            TEXT     NOT NULL,
-  -- Stores option_key of the correct answer; validated at app layer
-  correct_option_key TEXT    NOT NULL,
-  explanation       TEXT,
-  sort_order        SMALLINT NOT NULL DEFAULT 0
+  id                  UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
+  quiz_id             UUID     NOT NULL REFERENCES quizzes (id) ON DELETE CASCADE,
+  prompt              TEXT     NOT NULL,
+  -- One element = single-select; multiple elements = multi-select (checkboxes)
+  correct_option_keys TEXT[]   NOT NULL DEFAULT '{}',
+  is_multi_select     BOOLEAN  NOT NULL DEFAULT FALSE,
+  explanation         TEXT,
+  sort_order          SMALLINT NOT NULL DEFAULT 0
 );
 
 CREATE INDEX idx_quiz_questions_quiz_id ON quiz_questions (quiz_id, sort_order);
@@ -690,7 +691,7 @@ DECLARE
     'Product strategy',      'React architecture',     'Writing for the web'
   ];
   qid UUID;
-  q1 UUID; q2 UUID; q3 UUID;
+  q1 UUID; q2 UUID; q3 UUID; q4 UUID;
   i INT;
 BEGIN
   FOR i IN 1..6 LOOP
@@ -698,26 +699,60 @@ BEGIN
     q1 := gen_random_uuid();
     q2 := gen_random_uuid();
     q3 := gen_random_uuid();
+    q4 := gen_random_uuid();
 
-    INSERT INTO quiz_questions (id, quiz_id, prompt, correct_option_key, explanation, sort_order) VALUES
-      (q1, qid, format('Which best describes a key idea from "%s"?', topics[i]), 'b',
-       'Hierarchy and intent separate composed work from decorated work.', 0),
-      (q2, qid, 'What''s the most useful first step when starting a new piece?', 'b', NULL, 1),
-      (q3, qid, 'Restraint usually means…', 'a', NULL, 2);
+    INSERT INTO quiz_questions (id, quiz_id, prompt, correct_option_keys, is_multi_select, explanation, sort_order) VALUES
+      (q1, qid, format('Which best describes a key idea from "%s"?', topics[i]),
+       ARRAY['b'], FALSE, 'Hierarchy and intent separate composed work from decorated work.', 0),
+      (q2, qid, 'What''s the most useful first step when starting a new piece?',
+       ARRAY['b'], FALSE, NULL, 1),
+      (q3, qid, 'Restraint usually means…',
+       ARRAY['a'], FALSE, NULL, 2),
+      (q4, qid, 'Select all that apply: which are signs of strong work? (choose 2)',
+       ARRAY['a','c'], TRUE, 'Strong work uses restraint — purposeful space and clear hierarchy.', 3);
 
     INSERT INTO quiz_options (question_id, option_key, text, sort_order) VALUES
-      (q1, 'a', 'Decoration over composition',          0),
+      (q1, 'a', 'Decoration over composition',             0),
       (q1, 'b', 'Clear hierarchy and intentional choices', 1),
-      (q1, 'c', 'Whatever the default looks like',      2),
-      (q1, 'd', 'Maximum complexity, always',           3),
-      (q2, 'a', 'Pick the most ornate option',          0),
-      (q2, 'b', 'Define constraints and goals',         1),
-      (q2, 'c', 'Skip planning entirely',               2),
-      (q2, 'd', 'Copy a competitor exactly',            3),
-      (q3, 'a', 'Doing less, deliberately',             0),
-      (q3, 'b', 'Adding more variations',               1),
-      (q3, 'c', 'Avoiding all decisions',               2),
-      (q3, 'd', 'Working faster',                       3);
+      (q1, 'c', 'Whatever the default looks like',         2),
+      (q1, 'd', 'Maximum complexity, always',              3),
+      (q2, 'a', 'Pick the most ornate option',             0),
+      (q2, 'b', 'Define constraints and goals',            1),
+      (q2, 'c', 'Skip planning entirely',                  2),
+      (q2, 'd', 'Copy a competitor exactly',               3),
+      (q3, 'a', 'Doing less, deliberately',                0),
+      (q3, 'b', 'Adding more variations',                  1),
+      (q3, 'c', 'Avoiding all decisions',                  2),
+      (q3, 'd', 'Working faster',                          3),
+      (q4, 'a', 'Intentional use of white space',          0),
+      (q4, 'b', 'Maximum number of typefaces',             1),
+      (q4, 'c', 'Consistent visual hierarchy',             2),
+      (q4, 'd', 'Decoration for its own sake',             3);
   END LOOP;
 END;
 $$;
+
+-- =============================================================================
+-- PROMO CODES
+-- =============================================================================
+
+CREATE TYPE discount_type AS ENUM ('percent', 'fixed');
+
+CREATE TABLE promo_codes (
+  id             UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  code           TEXT          NOT NULL UNIQUE,
+  discount_type  discount_type NOT NULL DEFAULT 'percent',
+  discount_value NUMERIC(10,2) NOT NULL CHECK (discount_value > 0),
+  max_uses       INTEGER,
+  use_count      INTEGER       NOT NULL DEFAULT 0 CHECK (use_count >= 0),
+  expires_at     TIMESTAMPTZ,
+  is_active      BOOLEAN       NOT NULL DEFAULT TRUE,
+  created_at     TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_promo_codes_code ON promo_codes (code) WHERE is_active;
+
+INSERT INTO promo_codes (code, discount_type, discount_value) VALUES
+  ('WELCOME',  'percent', 10),
+  ('SUMMER20', 'percent', 20),
+  ('STUDY50',  'percent', 50);

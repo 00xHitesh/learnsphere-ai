@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { Course } from "@/lib/types";
 import { Star, Users } from "lucide-react";
+import { CourseIcon } from "./CourseIcon";
 
 const palette = [
   "bg-[oklch(0.92_0.04_85)] text-[oklch(0.35_0.06_60)]",
@@ -17,8 +18,8 @@ export function CourseCard({ course, index = 0 }: { course: Course; index?: numb
       params={{ slug: course.slug }}
       className="group block overflow-hidden rounded-xl border border-border/70 bg-card transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-soft)]"
     >
-      <div className={`flex aspect-[5/3] items-center justify-center ${tone}`}>
-        <span className="font-serif text-5xl">{course.cover}</span>
+      <div className={`flex aspect-5/3 items-center justify-center ${tone}`}>
+        <CourseIcon category={course.category} className="h-14 w-14 opacity-75" />
       </div>
       <div className="space-y-3 p-5">
         <div className="flex items-center justify-between text-xs text-muted-foreground">

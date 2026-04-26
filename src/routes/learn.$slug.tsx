@@ -13,10 +13,10 @@ import {
   Circle,
   ClipboardList,
   LayoutDashboard,
-  Play,
   RotateCcw,
   X,
 } from "lucide-react";
+import { CourseIcon } from "@/components/CourseIcon";
 import { toast } from "sonner";
 import type { Course, Quiz, User } from "@/lib/types";
 
@@ -30,31 +30,6 @@ export const Route = createFileRoute("/learn/$slug")({
   component: LearnPage,
 });
 
-/** Convert any YouTube/Vimeo/etc. URL into an embeddable URL */
-function toEmbedUrl(url?: string): string | null {
-  if (!url) return null;
-  try {
-    const u = new URL(url);
-    // youtube short
-    if (u.hostname === "youtu.be") {
-      return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
-    }
-    if (u.hostname.includes("youtube.com")) {
-      if (u.pathname === "/watch") {
-        const id = u.searchParams.get("v");
-        if (id) return `https://www.youtube.com/embed/${id}`;
-      }
-      if (u.pathname.startsWith("/embed/")) return url;
-    }
-    if (u.hostname.includes("vimeo.com")) {
-      const id = u.pathname.split("/").filter(Boolean)[0];
-      if (id) return `https://player.vimeo.com/video/${id}`;
-    }
-    return url;
-  } catch {
-    return url;
-  }
-}
 
 function LearnPage() {
   const { slug } = Route.useParams();
@@ -266,30 +241,13 @@ function LearnPage() {
             </div>
             <h1 className="font-serif text-3xl text-foreground">{lesson.title}</h1>
 
-            <div className="mt-5 aspect-video overflow-hidden rounded-xl border border-border bg-black">
-              {toEmbedUrl(lesson.videoUrl) ? (
-                <iframe
-                  key={lesson.id}
-                  title={lesson.title}
-                  className="h-full w-full"
-                  src={toEmbedUrl(lesson.videoUrl)!}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
+            <div className="mt-5 min-h-45 rounded-xl border border-border bg-card p-6 sm:p-8">
+              {lesson.description ? (
+                <p className="text-base leading-relaxed text-foreground">{lesson.description}</p>
               ) : (
-                <div className="grid h-full place-items-center text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Play className="h-4 w-4" /> No video available
-                  </div>
-                </div>
+                <p className="text-sm text-muted-foreground">No description available for this lesson.</p>
               )}
             </div>
-
-            {lesson.description && (
-              <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
-                {lesson.description}
-              </p>
-            )}
 
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
               <Button
@@ -380,8 +338,8 @@ function CompletionOverlay({
 
         {/* Cover + confetti-ish decoration */}
         <div className="flex flex-col items-center text-center">
-          <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-primary/20 bg-primary/10 text-5xl">
-            {course.cover}
+          <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-primary/20 bg-primary/10 text-primary">
+            <CourseIcon category={course.category} className="h-10 w-10" />
           </div>
           <div className="mt-1 text-2xl">🎉</div>
 
@@ -421,20 +379,38 @@ function CompletionOverlay({
 }
 
 function QuizView({ quiz, onExit }: { quiz: Quiz; onExit: () => void }) {
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [submitted, setSubmitted] = useState(false);
 
   const score = useMemo(() => {
-    const correct = quiz.questions.filter((q) => answers[q.id] === q.correctOptionId).length;
+    const correct = quiz.questions.filter((q) => {
+      const selected = answers[q.id] ?? [];
+      const correctSet = new Set(q.correctOptionIds);
+      const selectedSet = new Set(selected);
+      return correctSet.size === selectedSet.size && [...correctSet].every((id) => selectedSet.has(id));
+    }).length;
     return Math.round((correct / quiz.questions.length) * 100);
   }, [answers, quiz]);
 
   const passed = score >= quiz.passingScore;
-  const allAnswered = quiz.questions.every((q) => answers[q.id]);
+  const allAnswered = quiz.questions.every((q) => (answers[q.id]?.length ?? 0) > 0);
 
   const reset = () => {
     setAnswers({});
     setSubmitted(false);
+  };
+
+  const toggle = (qId: string, optId: string, isMulti: boolean) => {
+    setAnswers((prev) => {
+      if (isMulti) {
+        const current = prev[qId] ?? [];
+        const next = current.includes(optId)
+          ? current.filter((id) => id !== optId)
+          : [...current, optId];
+        return { ...prev, [qId]: next };
+      }
+      return { ...prev, [qId]: [optId] };
+    });
   };
 
   return (
@@ -478,36 +454,44 @@ function QuizView({ quiz, onExit }: { quiz: Quiz; onExit: () => void }) {
 
       <ol className="mt-8 space-y-6">
         {quiz.questions.map((q, i) => {
-          const chosen = answers[q.id];
+          const isMulti = q.correctOptionIds.length > 1;
+          const selected = answers[q.id] ?? [];
           return (
             <li key={q.id} className="rounded-xl border border-border bg-card p-5">
-              <div className="text-xs text-muted-foreground">Question {i + 1}</div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Question {i + 1}</span>
+                {isMulti && (
+                  <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide">
+                    Select all that apply
+                  </span>
+                )}
+              </div>
               <h3 className="mt-1 text-base font-medium text-foreground">{q.prompt}</h3>
               <div className="mt-4 space-y-2">
                 {q.options.map((opt) => {
-                  const selected = chosen === opt.id;
-                  const correct = submitted && opt.id === q.correctOptionId;
-                  const wrong = submitted && selected && opt.id !== q.correctOptionId;
+                  const isSelected = selected.includes(opt.id);
+                  const isCorrect = submitted && q.correctOptionIds.includes(opt.id);
+                  const isWrong = submitted && isSelected && !q.correctOptionIds.includes(opt.id);
                   return (
                     <label
                       key={opt.id}
                       className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 text-sm transition ${
-                        correct
+                        isCorrect
                           ? "border-primary/50 bg-primary/5"
-                          : wrong
+                          : isWrong
                             ? "border-destructive/50 bg-destructive/5"
-                            : selected
+                            : isSelected
                               ? "border-primary/40 bg-secondary"
                               : "border-border hover:bg-secondary"
                       }`}
                     >
                       <input
-                        type="radio"
+                        type={isMulti ? "checkbox" : "radio"}
                         name={q.id}
                         className="mt-1"
-                        checked={selected}
+                        checked={isSelected}
                         disabled={submitted}
-                        onChange={() => setAnswers((p) => ({ ...p, [q.id]: opt.id }))}
+                        onChange={() => toggle(q.id, opt.id, isMulti)}
                       />
                       <span className="flex-1 text-foreground">{opt.text}</span>
                     </label>

@@ -46,7 +46,7 @@ const sampleQuiz = (slug: string, topic: string): Quiz => ({
         { id: "c", text: "Whatever the default looks like" },
         { id: "d", text: "Maximum complexity, always" },
       ],
-      correctOptionId: "b",
+      correctOptionIds: ["b"],
       explanation: "Hierarchy and intent separate composed work from decorated work.",
     },
     {
@@ -58,7 +58,7 @@ const sampleQuiz = (slug: string, topic: string): Quiz => ({
         { id: "c", text: "Skip planning entirely" },
         { id: "d", text: "Copy a competitor exactly" },
       ],
-      correctOptionId: "b",
+      correctOptionIds: ["b"],
     },
     {
       id: `q-${slug}-1-q3`,
@@ -69,7 +69,19 @@ const sampleQuiz = (slug: string, topic: string): Quiz => ({
         { id: "c", text: "Avoiding all decisions" },
         { id: "d", text: "Working faster" },
       ],
-      correctOptionId: "a",
+      correctOptionIds: ["a"],
+    },
+    {
+      id: `q-${slug}-1-q4`,
+      prompt: "Select all that apply: which are signs of strong work? (choose 2)",
+      options: [
+        { id: "a", text: "Intentional use of white space" },
+        { id: "b", text: "Maximum number of typefaces" },
+        { id: "c", text: "Consistent visual hierarchy" },
+        { id: "d", text: "Decoration for its own sake" },
+      ],
+      correctOptionIds: ["a", "c"],
+      explanation: "Strong work uses restraint — purposeful space and clear hierarchy.",
     },
   ],
 });

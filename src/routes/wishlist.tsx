@@ -7,6 +7,7 @@ import { usePurchase } from "@/lib/query/transactions";
 import { Button } from "@/components/ui/button";
 import { CourseCard } from "@/components/CourseCard";
 import { Heart, Star, BookOpen, Bookmark } from "lucide-react";
+import { CourseIcon } from "@/components/CourseIcon";
 import { toast } from "sonner";
 import type { Course } from "@/lib/types";
 
@@ -192,9 +193,9 @@ function WishlistCard({
       <Link
         to="/courses/$slug"
         params={{ slug: course.slug }}
-        className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-secondary text-3xl"
+        className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary"
       >
-        {course.cover}
+        <CourseIcon category={course.category} className="h-9 w-9" />
       </Link>
 
       {/* Info */}

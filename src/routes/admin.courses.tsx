@@ -378,7 +378,7 @@ function QuizzesEditor({
         { id: "a", text: "Option A" },
         { id: "b", text: "Option B" },
       ],
-      correctOptionId: "a",
+      correctOptionIds: ["a"],
     };
     updateQuiz(qIdx, { questions: [...quizzes[qIdx].questions, newQ] });
   };
@@ -407,10 +407,9 @@ function QuizzesEditor({
     const q = quizzes[qIdx].questions[qqIdx];
     if (q.options.length <= 2) return;
     const opts = q.options.filter((_, i) => i !== oIdx);
-    const correctOptionId = opts.some((o) => o.id === q.correctOptionId)
-      ? q.correctOptionId
-      : opts[0].id;
-    updateQuestion(qIdx, qqIdx, { options: opts, correctOptionId });
+    const remaining = q.correctOptionIds.filter((id) => opts.some((o) => o.id === id));
+    const correctOptionIds = remaining.length > 0 ? remaining : [opts[0].id];
+    updateQuestion(qIdx, qqIdx, { options: opts, correctOptionIds });
   };
 
   return (
@@ -483,11 +482,16 @@ function QuizzesEditor({
                       {qq.options.map((opt, oIdx) => (
                         <li key={opt.id} className="flex items-center gap-2">
                           <input
-                            type="radio"
-                            name={`correct-${qq.id}`}
-                            checked={qq.correctOptionId === opt.id}
-                            onChange={() => updateQuestion(qIdx, qqIdx, { correctOptionId: opt.id })}
-                            title="Mark as correct"
+                            type="checkbox"
+                            checked={qq.correctOptionIds.includes(opt.id)}
+                            onChange={() => {
+                              const current = qq.correctOptionIds;
+                              const next = current.includes(opt.id)
+                                ? current.length > 1 ? current.filter((id) => id !== opt.id) : current
+                                : [...current, opt.id];
+                              updateQuestion(qIdx, qqIdx, { correctOptionIds: next });
+                            }}
+                            title="Mark as correct answer"
                           />
                           <input
                             value={opt.text}
