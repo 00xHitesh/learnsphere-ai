@@ -214,30 +214,14 @@ function Editor({
               className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
           </label>
-          <label className="block">
-            <span className="text-xs text-muted-foreground">Lessons (one per line)</span>
-            <textarea
-              rows={5}
-              value={c.lessons.map((l) => l.title).join("\n")}
-              onChange={(e) =>
-                update(
-                  "lessons",
-                  e.target.value
-                    .split("\n")
-                    .map((s) => s.trim())
-                    .filter(Boolean)
-                    .map((title, i) => ({
-                      id: `l-${i}-${slugify(title)}`,
-                      title,
-                      duration: "5:00",
-                      videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-                      preview: i === 0,
-                    })),
-                )
-              }
-              className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs outline-none focus:ring-2 focus:ring-ring"
-            />
-          </label>
+          <LessonsEditor
+            lessons={c.lessons}
+            onChange={(lessons) => update("lessons", lessons)}
+          />
+          <QuizzesEditor
+            quizzes={c.quizzes ?? []}
+            onChange={(quizzes) => update("quizzes", quizzes)}
+          />
         </div>
         <div className="mt-6 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>
