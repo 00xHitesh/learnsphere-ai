@@ -2,9 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAdminCourses, useDeleteCourse, useToggleCourseApproval, useUpsertCourse } from "@/lib/query/courses";
 import { Button } from "@/components/ui/button";
-import { Pencil, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import type { Course } from "@/lib/types";
+import type { Course, Lesson, Quiz, QuizQuestion } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/courses")({ component: AdminCourses });
 
