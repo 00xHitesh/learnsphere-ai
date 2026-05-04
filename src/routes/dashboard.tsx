@@ -93,7 +93,11 @@ function DashboardPage() {
           <p className="mt-2 text-muted-foreground">
             {myCourses.length === 0
               ? "Nothing here yet — let's fix that."
-              : `${completed.length} completed · ${inProgress.length} in progress`}
+              : [
+                  completed.length > 0 && `${completed.length} completed`,
+                  inProgress.length > 0 && `${inProgress.length} in progress`,
+                  notStarted.length > 0 && `${notStarted.length} not started`,
+                ].filter(Boolean).join(" · ")}
           </p>
         </div>
         <div
@@ -215,6 +219,19 @@ function DashboardPage() {
         </section>
       )}
 
+      {/* ── Not Started ───────────────────────────────────────── */}
+      {notStarted.length > 0 && (
+        <section className="mt-12">
+          <h2 className="font-serif text-2xl text-foreground">In your library</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Purchased, paid for, just waiting on you.</p>
+          <ul className="mt-6 grid gap-4 sm:grid-cols-2">
+            {notStarted.map(({ course }) => (
+              <CourseNotStartedCard key={course.id} course={course} />
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* ── Recommendations ───────────────────────────────────── */}
       {recommended.length > 0 && (
         <section className="mt-16">
@@ -276,6 +293,37 @@ function DashboardPage() {
         </section>
       )}
     </div>
+  );
+}
+
+function CourseNotStartedCard({ course }: { course: Course }) {
+  return (
+    <li className="rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-start gap-4">
+        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-secondary text-muted-foreground">
+          <CourseIcon category={course.category} className="h-7 w-7" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <Link
+            to="/courses/$slug"
+            params={{ slug: course.slug }}
+            className="font-serif text-lg text-foreground hover:underline"
+          >
+            {course.title}
+          </Link>
+          <div className="mt-1 text-xs text-muted-foreground">
+            {course.instructor} · {course.lessons.length} lessons
+          </div>
+          <Link
+            to="/learn/$slug"
+            params={{ slug: course.slug }}
+            className="mt-3 inline-block text-xs font-medium text-primary hover:underline"
+          >
+            Start now →
+          </Link>
+        </div>
+      </div>
+    </li>
   );
 }
 
