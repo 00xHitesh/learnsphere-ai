@@ -760,3 +760,100 @@ INSERT INTO promo_codes (code, discount_type, discount_value) VALUES
   ('WELCOME',  'percent', 10),
   ('SUMMER20', 'percent', 20),
   ('STUDY50',  'percent', 50);
+
+-- =============================================================================
+-- LIVE SESSIONS
+-- =============================================================================
+
+CREATE TYPE session_status AS ENUM ('upcoming', 'live', 'ended');
+
+CREATE TABLE live_sessions (
+  id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  title             TEXT        NOT NULL,
+  instructor        TEXT        NOT NULL,
+  description       TEXT        NOT NULL DEFAULT '',
+  scheduled_at      TIMESTAMPTZ NOT NULL,
+  duration_minutes  INTEGER     NOT NULL CHECK (duration_minutes > 0),
+  topic             TEXT        NOT NULL DEFAULT 'All Topics',
+  join_url          TEXT        NOT NULL,
+  -- Optional link to a course
+  course_id         UUID                    REFERENCES courses (id) ON DELETE SET NULL,
+  registered_count  INTEGER     NOT NULL DEFAULT 0 CHECK (registered_count >= 0),
+  max_attendees     INTEGER     NOT NULL CHECK (max_attendees > 0),
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_live_sessions_scheduled_at ON live_sessions (scheduled_at);
+CREATE INDEX idx_live_sessions_course_id    ON live_sessions (course_id);
+
+CREATE TRIGGER trg_live_sessions_updated_at
+  BEFORE UPDATE ON live_sessions
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- Computed status view (avoids storing derived state)
+CREATE OR REPLACE VIEW v_live_sessions AS
+SELECT
+  ls.*,
+  CASE
+    WHEN NOW() < ls.scheduled_at
+      THEN 'upcoming'::session_status
+    WHEN NOW() < ls.scheduled_at + (ls.duration_minutes * INTERVAL '1 minute')
+      THEN 'live'::session_status
+    ELSE 'ended'::session_status
+  END AS status
+FROM live_sessions ls;
+
+-- =============================================================================
+-- FEATURE FLAGS
+-- =============================================================================
+
+CREATE TABLE feature_flags (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT        NOT NULL UNIQUE,
+  label       TEXT        NOT NULL,
+  description TEXT        NOT NULL DEFAULT '',
+  enabled     BOOLEAN     NOT NULL DEFAULT TRUE,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TRIGGER trg_feature_flags_updated_at
+  BEFORE UPDATE ON feature_flags
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+INSERT INTO feature_flags (name, label, description, enabled) VALUES
+  ('courses',       'Courses',       'Enable the courses catalog and all course detail pages.', TRUE),
+  ('live_sessions', 'Live Sessions', 'Enable the live sessions section and the /live page.',    TRUE);
+
+INSERT INTO live_sessions
+  (title, instructor, description, scheduled_at, duration_minutes, topic, join_url, registered_count, max_attendees)
+VALUES
+  ('AI & Learning — Open Office Hours',
+   'The Lumen Team',
+   'Bring any question about courses, AI tools, or learning strategies. No agenda, all welcome.',
+   '2026-05-04 12:00:00+00', 2880, 'All Topics',
+   'https://meet.example.com/open-hours', 312, 500),
+
+  ('Design Thinking Masterclass',
+   'Elena Vasquez',
+   'Explore design thinking frameworks with live exercises and a hands-on critique session.',
+   '2026-05-07 15:00:00+00', 90, 'Design',
+   'https://meet.example.com/design-masterclass', 127, 200),
+
+  ('Python Bootcamp — Office Hours',
+   'Marcus Chen',
+   'Got questions from this week''s Python lessons? Bring them here. Live coding, live answers.',
+   '2026-05-09 17:00:00+00', 60, 'Programming',
+   'https://meet.example.com/python-office-hours', 84, 150),
+
+  ('Business Strategy Workshop',
+   'Aisha Okonkwo',
+   'Build a 1-page business strategy using real-world frameworks. Collaborative and fast-paced.',
+   '2026-05-12 14:00:00+00', 120, 'Business',
+   'https://meet.example.com/strategy-workshop', 56, 100),
+
+  ('Watercolor for Beginners — Live Demo',
+   'Sofia Reyes',
+   'Watch and paint along as Sofia walks you through your first watercolor piece, start to finish.',
+   '2026-05-14 16:00:00+00', 75, 'Art',
+   'https://meet.example.com/watercolor-demo', 203, 300);

@@ -26,4 +26,12 @@ export const qk = {
   chat: {
     byUser: (userId: string) => ["chat", userId] as const,
   },
+  liveSessions: {
+    all: () => ["live-sessions"] as const,
+    list: () => ["live-sessions", "list"] as const,
+  },
+  features: {
+    all: () => ["features"] as const,
+    list: () => ["features", "list"] as const,
+  },
 };

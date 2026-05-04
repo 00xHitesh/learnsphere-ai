@@ -1,4 +1,4 @@
-import type { Course, Quiz, User } from "./types";
+import type { Course, FeatureFlag, LiveSession, Quiz, User } from "./types";
 
 export const seedUsers: User[] = [
   {
@@ -276,3 +276,89 @@ export const seedCourses: Course[] = [
 ];
 
 export const categories = ["All", "Design", "Programming", "Art", "Business", "Writing"] as const;
+
+// ls-0 started yesterday and lasts 48 h so it always shows as LIVE on 2026-05-05
+export const seedLiveSessions: LiveSession[] = [
+  {
+    id: "ls-0",
+    title: "AI & Learning — Open Office Hours",
+    instructor: "The Lumen Team",
+    description:
+      "Bring any question about courses, AI tools, or learning strategies. No agenda, all welcome.",
+    scheduledAt: "2026-05-04T12:00:00.000Z",
+    durationMinutes: 2880,
+    topic: "All Topics",
+    joinUrl: "https://meet.example.com/open-hours",
+    registeredCount: 312,
+    maxAttendees: 500,
+  },
+  {
+    id: "ls-1",
+    title: "Design Thinking Masterclass",
+    instructor: "Elena Vasquez",
+    description:
+      "Explore design thinking frameworks with live exercises and a hands-on critique session.",
+    scheduledAt: "2026-05-07T15:00:00.000Z",
+    durationMinutes: 90,
+    topic: "Design",
+    joinUrl: "https://meet.example.com/design-masterclass",
+    registeredCount: 127,
+    maxAttendees: 200,
+  },
+  {
+    id: "ls-2",
+    title: "Python Bootcamp — Office Hours",
+    instructor: "Marcus Chen",
+    description:
+      "Got questions from this week's Python lessons? Bring them here. Live coding, live answers.",
+    scheduledAt: "2026-05-09T17:00:00.000Z",
+    durationMinutes: 60,
+    topic: "Programming",
+    joinUrl: "https://meet.example.com/python-office-hours",
+    registeredCount: 84,
+    maxAttendees: 150,
+  },
+  {
+    id: "ls-3",
+    title: "Business Strategy Workshop",
+    instructor: "Aisha Okonkwo",
+    description:
+      "Build a 1-page business strategy using real-world frameworks. Collaborative and fast-paced.",
+    scheduledAt: "2026-05-12T14:00:00.000Z",
+    durationMinutes: 120,
+    topic: "Business",
+    joinUrl: "https://meet.example.com/strategy-workshop",
+    registeredCount: 56,
+    maxAttendees: 100,
+  },
+  {
+    id: "ls-4",
+    title: "Watercolor for Beginners — Live Demo",
+    instructor: "Sofia Reyes",
+    description:
+      "Watch and paint along as Sofia walks you through your first watercolor piece, start to finish.",
+    scheduledAt: "2026-05-14T16:00:00.000Z",
+    durationMinutes: 75,
+    topic: "Art",
+    joinUrl: "https://meet.example.com/watercolor-demo",
+    registeredCount: 203,
+    maxAttendees: 300,
+  },
+];
+
+export const seedFeatureFlags: FeatureFlag[] = [
+  {
+    id: "ff-1",
+    name: "courses",
+    label: "Courses",
+    description: "Enable the courses catalog and all course detail pages.",
+    enabled: true,
+  },
+  {
+    id: "ff-2",
+    name: "live_sessions",
+    label: "Live Sessions",
+    description: "Enable the live sessions section on the homepage and the /live page.",
+    enabled: true,
+  },
+];

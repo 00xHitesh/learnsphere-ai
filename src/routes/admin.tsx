@@ -61,6 +61,22 @@ function AdminLayout() {
         >
           Transactions
         </Link>
+        <Link
+          to="/admin/live-sessions"
+          activeProps={{ className: "border-foreground text-foreground" }}
+          inactiveProps={{ className: "border-transparent text-muted-foreground" }}
+          className="border-b-2 px-4 py-2 text-sm hover:text-foreground"
+        >
+          Live Sessions
+        </Link>
+        <Link
+          to="/admin/features"
+          activeProps={{ className: "border-foreground text-foreground" }}
+          inactiveProps={{ className: "border-transparent text-muted-foreground" }}
+          className="border-b-2 px-4 py-2 text-sm hover:text-foreground"
+        >
+          Features
+        </Link>
       </nav>
       <div className="mt-8">{isRoot ? <Overview /> : <Outlet />}</div>
     </div>

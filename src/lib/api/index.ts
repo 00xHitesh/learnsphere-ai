@@ -2,6 +2,8 @@ export { authApi } from "./auth";
 export { chatApi } from "./chat";
 export { coursesApi } from "./courses";
 export { enrollmentsApi } from "./enrollments";
+export { featuresApi } from "./features";
+export { liveSessionsApi } from "./liveSessions";
 export { statsApi } from "./stats";
 export { transactionsApi } from "./transactions";
 export { usersApi } from "./users";

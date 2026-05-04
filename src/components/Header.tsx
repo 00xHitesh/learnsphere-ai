@@ -48,6 +48,7 @@ export function Header() {
           <nav className="hidden items-center gap-6 md:flex">
             <Link to="/" activeOptions={{ exact: true }} activeProps={{ className: "text-foreground font-medium" }} inactiveProps={{ className: "text-muted-foreground" }} className="text-sm transition-colors hover:text-foreground">Home</Link>
             <Link to="/courses" activeProps={{ className: "text-foreground font-medium" }} inactiveProps={{ className: "text-muted-foreground" }} className="text-sm transition-colors hover:text-foreground">Courses</Link>
+            <Link to="/live" activeProps={{ className: "text-foreground font-medium" }} inactiveProps={{ className: "text-muted-foreground" }} className="text-sm transition-colors hover:text-foreground">Live</Link>
             <Link to="/about" activeProps={{ className: "text-foreground font-medium" }} inactiveProps={{ className: "text-muted-foreground" }} className="text-sm transition-colors hover:text-foreground">About</Link>
             <Link to="/contact" activeProps={{ className: "text-foreground font-medium" }} inactiveProps={{ className: "text-muted-foreground" }} className="text-sm transition-colors hover:text-foreground">Contact</Link>
           </nav>
@@ -85,6 +86,7 @@ export function Header() {
           <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
             <Link to="/" onClick={() => setOpen(false)} className="rounded-lg px-3 py-2 text-sm hover:bg-secondary">Home</Link>
             <Link to="/courses" onClick={() => setOpen(false)} className="rounded-lg px-3 py-2 text-sm hover:bg-secondary">Courses</Link>
+            <Link to="/live" onClick={() => setOpen(false)} className="rounded-lg px-3 py-2 text-sm hover:bg-secondary">Live</Link>
             <Link to="/about" onClick={() => setOpen(false)} className="rounded-lg px-3 py-2 text-sm hover:bg-secondary">About</Link>
             <Link to="/contact" onClick={() => setOpen(false)} className="rounded-lg px-3 py-2 text-sm hover:bg-secondary">Contact</Link>
             <div className="my-2 h-px bg-border" />

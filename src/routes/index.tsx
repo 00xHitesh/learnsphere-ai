@@ -2,15 +2,31 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import heroImg from "@/assets/hero.jpg";
 import { useAuth } from "@/lib/auth-store";
 import { useCourses } from "@/lib/query/courses";
+import { useLiveSessions } from "@/lib/query/liveSessions";
+import { useFeatureFlag } from "@/lib/query/features";
 import { CourseCard } from "@/components/CourseCard";
+import { LiveSessionCard } from "@/components/LiveSessionCard";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Bot, Compass, Zap } from "lucide-react";
+import { ArrowRight, Bot, Compass, Radio, Zap } from "lucide-react";
 
 export const Route = createFileRoute("/")({ component: Index });
 
 function Index() {
   const { currentUser } = useAuth();
   const { data: courses = [] } = useCourses();
+
+  const { data: allSessions = [] } = useLiveSessions();
+  const liveSessionsEnabled = useFeatureFlag("live_sessions");
+
+  const upcomingSessions = allSessions
+    .filter((s) => {
+      const now = Date.now();
+      const start = new Date(s.scheduledAt).getTime();
+      const end = start + s.durationMinutes * 60_000;
+      return now < end;
+    })
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+    .slice(0, 3);
 
   const featured = courses.slice(0, 6);
   const recommended = currentUser
@@ -111,6 +127,30 @@ function Index() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {recommended.map((c, i) => (
               <CourseCard key={c.id} course={c} index={i} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Live Sessions */}
+      {liveSessionsEnabled && upcomingSessions.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+          <div className="mb-6 flex items-end justify-between">
+            <div>
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent">
+                <Radio className="h-3 w-3 animate-pulse" /> Live &amp; upcoming
+              </span>
+              <h2 className="font-serif mt-1 text-2xl text-foreground">
+                Learn in real time
+              </h2>
+            </div>
+            <Link to="/live" className="text-sm text-muted-foreground hover:text-foreground">
+              All sessions →
+            </Link>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {upcomingSessions.map((s) => (
+              <LiveSessionCard key={s.id} session={s} compact />
             ))}
           </div>
         </section>

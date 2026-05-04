@@ -1,5 +1,5 @@
-import { seedCourses, seedUsers } from "../seed";
-import type { ChatMessage, Course, Enrollment, Transaction, User } from "../types";
+import { seedCourses, seedFeatureFlags, seedLiveSessions, seedUsers } from "../seed";
+import type { ChatMessage, Course, Enrollment, FeatureFlag, LiveSession, Transaction, User } from "../types";
 
 interface MockDB {
   users: User[];
@@ -8,6 +8,8 @@ interface MockDB {
   transactions: Transaction[];
   wishlists: { userId: string; courseId: string }[];
   chats: Record<string, ChatMessage[]>;
+  liveSessions: LiveSession[];
+  featureFlags: FeatureFlag[];
 }
 
 // In-memory store that simulates a database.
@@ -20,4 +22,6 @@ export const db: MockDB = {
   transactions: [],
   wishlists: [],
   chats: {},
+  liveSessions: seedLiveSessions.map((s) => ({ ...s })),
+  featureFlags: seedFeatureFlags.map((f) => ({ ...f })),
 };

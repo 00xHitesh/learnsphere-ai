@@ -1,5 +1,5 @@
 import { db } from "@/lib/api/db";
-import { seedCourses, seedUsers } from "@/lib/seed";
+import { seedCourses, seedFeatureFlags, seedLiveSessions, seedUsers } from "@/lib/seed";
 
 /** Reset the in-memory DB to seed state before each test */
 export function resetDb() {
@@ -9,4 +9,6 @@ export function resetDb() {
   db.transactions = [];
   db.wishlists = [];
   db.chats = {};
+  db.liveSessions = seedLiveSessions.map((s) => ({ ...s }));
+  db.featureFlags = seedFeatureFlags.map((f) => ({ ...f }));
 }

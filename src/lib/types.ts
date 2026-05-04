@@ -95,3 +95,25 @@ export interface ChatMessage {
   content: string;
   date: string;
 }
+
+export interface LiveSession {
+  id: string;
+  title: string;
+  instructor: string;
+  description: string;
+  scheduledAt: string; // ISO datetime
+  durationMinutes: number;
+  topic: string;
+  joinUrl: string;
+  courseId?: string;
+  registeredCount: number;
+  maxAttendees: number;
+}
+
+export interface FeatureFlag {
+  id: string;
+  name: string;
+  label: string;
+  description: string;
+  enabled: boolean;
+}
