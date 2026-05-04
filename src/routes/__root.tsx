@@ -35,17 +35,17 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lumen — A quiet place to learn" },
+      { title: "Lumen — Level up your skills, not your stress" },
       {
         name: "description",
         content:
-          "Lumen is an elegant learning platform with hand-picked courses, an AI study assistant, and a calm interface designed for focus.",
+          "Lumen is a modern learning platform with hand-picked courses, an AI study sidekick, and zero dark patterns.",
       },
       { name: "author", content: "Lumen" },
-      { property: "og:title", content: "Lumen — A quiet place to learn" },
+      { property: "og:title", content: "Lumen — Level up your skills, not your stress" },
       {
         property: "og:description",
-        content: "Hand-picked courses and an AI study assistant.",
+        content: "Actually good courses and an AI study sidekick. No BS.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
