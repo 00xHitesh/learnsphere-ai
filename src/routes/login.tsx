@@ -17,7 +17,7 @@ export function AuthFrame({
 }) {
   return (
     <div className="mx-auto max-w-md px-4 py-16 sm:px-6">
-      <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-soft)]">
+      <div className="rounded-2xl border border-border bg-card p-8 shadow-(--shadow-soft)">
         <h1 className="font-serif text-3xl text-foreground">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
         <div className="mt-6">{children}</div>
@@ -41,13 +41,13 @@ export function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
-        className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
       />
     </label>
   );
@@ -60,7 +60,6 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Redirect already-authenticated users away from login
   useEffect(() => {
     if (mounted && currentUser) {
       navigate({ to: currentUser.role === "admin" ? "/admin" : "/dashboard" });
@@ -76,7 +75,7 @@ function LoginPage() {
         toast.success(`Welcome, ${user.name.split(" ")[0]}`);
         navigate({ to: "/admin" });
       } else {
-        toast.success(`Welcome back, ${user.name.split(" ")[0]}`);
+        toast.success(`Let's gooo, ${user.name.split(" ")[0]}!`);
         navigate({ to: "/dashboard" });
       }
     } catch (err) {
@@ -87,7 +86,7 @@ function LoginPage() {
   };
 
   return (
-    <AuthFrame title="Welcome back" subtitle="Sign in to continue learning.">
+    <AuthFrame title="You're back! ✦" subtitle="Pick up right where you left off.">
       <form onSubmit={submit} className="space-y-4">
         <Field label="Email" type="email" value={email} onChange={setEmail} required />
         <Field label="Password" type="password" value={password} onChange={setPassword} required />
@@ -96,21 +95,26 @@ function LoginPage() {
             Forgot password?
           </Link>
         </div>
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Signing in…" : "Sign in"}
+        <Button
+          type="submit"
+          className="w-full text-white hover:opacity-90"
+          style={{ background: "var(--gradient-accent)" }}
+          disabled={loading}
+        >
+          {loading ? "Logging in…" : "Log in →"}
         </Button>
       </form>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
         New here?{" "}
-        <Link to="/register" className="text-foreground underline">
-          Create an account
+        <Link to="/register" className="font-medium text-primary underline">
+          Join for free
         </Link>
       </p>
 
-      <div className="mt-8 rounded-md border border-dashed border-border bg-secondary/50 p-3 text-xs text-muted-foreground">
-        <p className="font-medium text-foreground">Try the demo account</p>
-        <p>demo@lumen.io / demo1234</p>
+      <div className="mt-8 rounded-xl border border-dashed border-border bg-secondary/50 p-3 text-xs text-muted-foreground">
+        <p className="font-semibold text-foreground">Test drive the app</p>
+        <p className="mt-0.5">demo@lumen.io / demo1234</p>
       </div>
     </AuthFrame>
   );

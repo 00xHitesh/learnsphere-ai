@@ -25,7 +25,8 @@ function DashboardPage() {
   if (!currentUser)
     return (
       <div className="mx-auto max-w-md px-6 py-24 text-center">
-        <h1 className="font-serif text-2xl text-foreground">Please sign in</h1>
+        <h1 className="font-serif text-2xl text-foreground">Psst — you're not logged in</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Sign in to see your courses and progress.</p>
         <Button asChild className="mt-6">
           <Link to="/login">Sign in</Link>
         </Button>
@@ -60,23 +61,23 @@ function DashboardPage() {
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
       <div className="mb-10">
         <h1 className="font-serif text-4xl text-foreground sm:text-5xl">
-          Hello, {currentUser.name.split(" ")[0]}.
+          Hey, {currentUser.name.split(" ")[0]}!
         </h1>
         <p className="mt-2 text-muted-foreground">
           {myCourses.length === 0
-            ? "You haven't enrolled in anything yet. Start with something small."
+            ? "Nothing here yet — let's fix that. Pick a course and get moving."
             : subtitleParts.join(" · ")}
         </p>
       </div>
 
       {/* ── In Progress ───────────────────────────────────────── */}
       <section>
-        <h2 className="font-serif text-2xl text-foreground">In Progress</h2>
+        <h2 className="font-serif text-2xl text-foreground">Currently cooking</h2>
         {inProgress.length === 0 ? (
-          <div className="mt-4 rounded-lg border border-dashed border-border p-10 text-center">
-            <p className="text-muted-foreground">No enrollments yet.</p>
-            <Button asChild className="mt-4">
-              <Link to="/courses">Browse courses</Link>
+          <div className="mt-4 rounded-2xl border border-dashed border-border p-10 text-center">
+            <p className="text-muted-foreground">No courses in progress yet.</p>
+            <Button asChild className="mt-4" style={{ background: "var(--gradient-accent)" }}>
+              <Link to="/courses" className="text-white">Browse courses</Link>
             </Button>
           </div>
         ) : (
@@ -91,7 +92,7 @@ function DashboardPage() {
       {/* ── Completed ─────────────────────────────────────────── */}
       {completed.length > 0 && (
         <section className="mt-12">
-          <h2 className="font-serif text-2xl text-foreground">Completed</h2>
+          <h2 className="font-serif text-2xl text-foreground">Conquered</h2>
           <ul className="mt-6 grid gap-4 sm:grid-cols-2">
             {completed.map(({ course }) => (
               <CourseCompletedCard
@@ -108,22 +109,22 @@ function DashboardPage() {
       {recommended.length > 0 && (
         <section className="mt-16">
           <div className="mb-4">
-            <span className="inline-flex items-center gap-1.5 text-xs text-accent">
-              <Bot className="h-3 w-3" /> AI recommendations
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-accent">
+              <Bot className="h-3 w-3" /> The algorithm cooked
             </span>
-            <h2 className="font-serif mt-1 text-2xl text-foreground">You might also like</h2>
+            <h2 className="font-serif mt-1 text-2xl text-foreground">You'd probably vibe with these</h2>
           </div>
           <ul className="grid gap-4 sm:grid-cols-3">
             {recommended.map((c) => (
-              <li key={c.id} className="rounded-xl border border-border bg-card p-5">
+              <li key={c.id} className="rounded-2xl border border-border bg-card p-5">
                 <div className="font-serif text-lg text-foreground">{c.title}</div>
                 <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{c.summary}</p>
                 <Link
                   to="/courses/$slug"
                   params={{ slug: c.slug }}
-                  className="mt-3 inline-block text-sm text-primary"
+                  className="mt-3 inline-block text-sm font-medium text-primary"
                 >
-                  View →
+                  Check it out →
                 </Link>
               </li>
             ))}
@@ -134,15 +135,15 @@ function DashboardPage() {
       {/* ── Transactions ──────────────────────────────────────── */}
       {transactions.length > 0 && (
         <section className="mt-16">
-          <h2 className="font-serif text-2xl text-foreground">Transactions</h2>
-          <div className="mt-4 overflow-x-auto rounded-lg border border-border">
+          <h2 className="font-serif text-2xl text-foreground">Purchase history</h2>
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-border">
             <table className="w-full text-sm">
               <thead className="bg-secondary text-left text-xs text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-2">Date</th>
-                  <th className="px-4 py-2">Course</th>
-                  <th className="px-4 py-2">Amount</th>
-                  <th className="px-4 py-2">Status</th>
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">Course</th>
+                  <th className="px-4 py-3">Amount</th>
+                  <th className="px-4 py-3">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -150,12 +151,12 @@ function DashboardPage() {
                   const c = courses.find((x) => x.id === t.courseId);
                   return (
                     <tr key={t.id} className="border-t border-border">
-                      <td className="px-4 py-2 text-muted-foreground">
+                      <td className="px-4 py-3 text-muted-foreground">
                         {new Date(t.date).toLocaleDateString()}
                       </td>
-                      <td className="px-4 py-2">{c?.title ?? "—"}</td>
-                      <td className="px-4 py-2">${t.amount}</td>
-                      <td className="px-4 py-2 capitalize">{t.status}</td>
+                      <td className="px-4 py-3">{c?.title ?? "—"}</td>
+                      <td className="px-4 py-3">${t.amount}</td>
+                      <td className="px-4 py-3 capitalize">{t.status}</td>
                     </tr>
                   );
                 })}
@@ -170,9 +171,9 @@ function DashboardPage() {
 
 function CourseProgressCard({ course, pct }: { course: Course; pct: number }) {
   return (
-    <li className="rounded-xl border border-border bg-card p-5">
+    <li className="rounded-2xl border border-border bg-card p-5">
       <div className="flex items-start gap-4">
-        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
           <CourseIcon category={course.category} className="h-7 w-7" />
         </div>
         <div className="min-w-0 flex-1">
@@ -186,17 +187,20 @@ function CourseProgressCard({ course, pct }: { course: Course; pct: number }) {
           <div className="mt-1 text-xs text-muted-foreground">
             {course.instructor} · {course.lessons.length} lessons
           </div>
-          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-            <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${pct}%`, background: "var(--gradient-accent)" }}
+            />
           </div>
           <div className="mt-1 flex items-center justify-between gap-2">
-            <span className="text-xs text-muted-foreground">{pct}% complete</span>
+            <span className="text-xs text-muted-foreground">{pct}% done</span>
             <Link
               to="/learn/$slug"
               params={{ slug: course.slug }}
-              className="text-xs text-primary hover:underline"
+              className="text-xs font-medium text-primary hover:underline"
             >
-              Continue →
+              Keep going →
             </Link>
           </div>
         </div>
@@ -213,9 +217,9 @@ function CourseCompletedCard({
   userName: string;
 }) {
   return (
-    <li className="rounded-xl border border-primary/20 bg-card p-5">
+    <li className="rounded-2xl border border-primary/20 bg-card p-5">
       <div className="flex items-start gap-4">
-        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
           <CourseIcon category={course.category} className="h-7 w-7" />
         </div>
         <div className="min-w-0 flex-1">

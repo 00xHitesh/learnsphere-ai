@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth-store";
 import { useCourses } from "@/lib/query/courses";
 import { CourseCard } from "@/components/CourseCard";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Bot, Compass, Sparkles } from "lucide-react";
+import { ArrowRight, Bot, Compass, Zap } from "lucide-react";
 
 export const Route = createFileRoute("/")({ component: Index });
 
@@ -27,52 +27,67 @@ function Index() {
     <div>
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10" style={{ background: "var(--gradient-hero)" }} />
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
+          <div
+            className="absolute -top-40 -right-32 h-96 w-96 rounded-full opacity-25"
+            style={{ background: "var(--gradient-accent)", filter: "blur(96px)" }}
+          />
+          <div
+            className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full opacity-15"
+            style={{ background: "var(--gradient-accent)", filter: "blur(72px)" }}
+          />
+        </div>
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-20 sm:px-6 md:grid-cols-2 md:py-28">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
-              <Sparkles className="h-3 w-3 text-accent" />
-              AI-assisted learning, gently done
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-xs font-medium text-primary">
+              <Zap className="h-3 w-3" />
+              Built different. Learn faster.
             </span>
             <h1 className="font-serif mt-6 text-4xl leading-[1.05] text-foreground sm:text-5xl md:text-6xl">
-              A quiet place
-              <br /> to learn the things
-              <br /> you've meant to learn.
+              Level up your skills,
+              <br />
+              <span style={{ background: "var(--gradient-accent)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                not your stress.
+              </span>
             </h1>
             <p className="mt-6 max-w-md text-base text-muted-foreground sm:text-lg">
-              Hand-picked courses, an AI study assistant, and a calm interface that gets out of your
-              way.
+              Actually good courses, an AI that doesn't gaslight you, and zero dark patterns. We're not like other platforms.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Button asChild size="lg">
+              <Button asChild size="lg" style={{ background: "var(--gradient-accent)" }} className="text-white hover:opacity-90">
                 <Link to="/courses">
-                  Browse courses <ArrowRight className="ml-1.5 h-4 w-4" />
+                  Explore courses <ArrowRight className="ml-1.5 h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg">
                 <Link to={currentUser ? "/dashboard" : "/register"}>
-                  {currentUser ? "Open dashboard" : "Create an account"}
+                  {currentUser ? "My dashboard" : "Join for free"}
                 </Link>
               </Button>
             </div>
-            <div className="mt-10 flex items-center gap-6 text-xs text-muted-foreground">
-              <span>{courses.length} curated courses</span>
+            <div className="mt-10 flex flex-wrap items-center gap-6 text-xs text-muted-foreground">
+              <span>{courses.length} handpicked courses</span>
               <span className="h-1 w-1 rounded-full bg-border" />
-              <span>AI study assistant</span>
+              <span>AI study sidekick</span>
               <span className="h-1 w-1 rounded-full bg-border" />
-              <span>No noise</span>
+              <span>Zero BS</span>
             </div>
           </div>
           <div className="relative">
-            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-elegant)]">
+            <div className="overflow-hidden rounded-2xl border border-primary/15 bg-card shadow-(--shadow-elegant)">
               <img
                 src={heroImg}
                 alt="Illustration of an open book with a rising sun"
                 width={1536}
                 height={1024}
-                className="aspect-[3/2] w-full object-cover"
+                className="aspect-3/2 w-full object-cover"
               />
             </div>
+            <div
+              className="absolute -bottom-3 -right-3 -z-10 h-full w-full rounded-2xl opacity-20"
+              style={{ background: "var(--gradient-accent)" }}
+            />
           </div>
         </div>
       </section>
@@ -82,8 +97,8 @@ function Index() {
         <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
           <div className="mb-6 flex items-end justify-between">
             <div>
-              <span className="inline-flex items-center gap-1.5 text-xs text-accent">
-                <Bot className="h-3 w-3" /> AI recommendations
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-accent">
+                <Bot className="h-3 w-3" /> The AI cooked for you
               </span>
               <h2 className="font-serif mt-1 text-2xl text-foreground">
                 Picked for you, {currentUser.name.split(" ")[0]}
@@ -106,7 +121,7 @@ function Index() {
         <div className="mb-8 flex items-end justify-between">
           <div>
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Compass className="h-3 w-3" /> Browse
+              <Compass className="h-3 w-3" /> Trending rn
             </span>
             <h2 className="font-serif mt-1 text-3xl text-foreground">Featured courses</h2>
           </div>
@@ -123,22 +138,22 @@ function Index() {
 
       {/* Three pillars */}
       <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-        <div className="grid gap-10 md:grid-cols-3">
+        <div className="grid gap-8 md:grid-cols-3">
           {[
             {
-              title: "Curation, not catalog.",
-              body: "We'd rather have one good course than ten near-misses. Each one is reviewed, paced, and finished.",
+              title: "Quality over quantity.",
+              body: "We'd rather have 10 courses that actually slap than 1,000 that make you fall asleep. Every course is reviewed, paced, and worth your time.",
             },
             {
-              title: "An assistant, not a tutor.",
-              body: "Our AI helps you find the right course, summarizes lessons, and answers questions — without pretending to be a teacher.",
+              title: "Your AI study buddy.",
+              body: "Summarizes lessons, answers your actual questions about the actual content, and hypes you up when you need it — without the creepy upsells.",
             },
             {
-              title: "Your time, respected.",
-              body: "No streaks, no autoplay, no popups. Just the next lesson, when you're ready for it.",
+              title: "Zero toxic patterns.",
+              body: "No fake streaks. No guilt-trip notifications. No autoplay traps. Just the next lesson, exactly when you're ready for it.",
             },
           ].map((p) => (
-            <div key={p.title}>
+            <div key={p.title} className="rounded-2xl border border-border bg-card p-6">
               <h3 className="font-serif text-xl text-foreground">{p.title}</h3>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{p.body}</p>
             </div>
