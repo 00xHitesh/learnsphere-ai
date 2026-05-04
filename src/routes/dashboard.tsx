@@ -281,7 +281,17 @@ function DashboardPage() {
                       <td className="px-4 py-3 text-muted-foreground">
                         {new Date(t.date).toLocaleDateString()}
                       </td>
-                      <td className="px-4 py-3">{c?.title ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        {c ? (
+                          <Link
+                            to="/courses/$slug"
+                            params={{ slug: c.slug }}
+                            className="hover:underline hover:text-primary"
+                          >
+                            {c.title}
+                          </Link>
+                        ) : "—"}
+                      </td>
                       <td className="px-4 py-3">${t.amount}</td>
                       <td className="px-4 py-3 capitalize">{t.status}</td>
                     </tr>
