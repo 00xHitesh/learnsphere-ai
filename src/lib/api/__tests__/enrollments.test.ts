@@ -90,6 +90,32 @@ describe("enrollmentsApi.toggleLessonComplete", () => {
     const result = await enrollmentsApi.toggleLessonComplete(USER_ID, COURSE_ID(), "l-0");
     expect(result).toBeNull();
   });
+
+  it("awards 10 points when marking a lesson complete", async () => {
+    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
+    const lessonId = db.courses[0].lessons[0]?.id ?? "l-0";
+    const before = db.users.find((u) => u.id === USER_ID)!.points;
+    await enrollmentsApi.toggleLessonComplete(USER_ID, COURSE_ID(), lessonId);
+    expect(db.users.find((u) => u.id === USER_ID)!.points).toBe(before + 10);
+  });
+
+  it("deducts 10 points when un-marking a lesson", async () => {
+    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
+    const lessonId = db.courses[0].lessons[0]?.id ?? "l-0";
+    await enrollmentsApi.toggleLessonComplete(USER_ID, COURSE_ID(), lessonId);
+    const pointsAfterComplete = db.users.find((u) => u.id === USER_ID)!.points;
+    await enrollmentsApi.toggleLessonComplete(USER_ID, COURSE_ID(), lessonId);
+    expect(db.users.find((u) => u.id === USER_ID)!.points).toBe(pointsAfterComplete - 10);
+  });
+
+  it("two toggles restore original points", async () => {
+    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
+    const lessonId = db.courses[0].lessons[0]?.id ?? "l-0";
+    const original = db.users.find((u) => u.id === USER_ID)!.points;
+    await enrollmentsApi.toggleLessonComplete(USER_ID, COURSE_ID(), lessonId);
+    await enrollmentsApi.toggleLessonComplete(USER_ID, COURSE_ID(), lessonId);
+    expect(db.users.find((u) => u.id === USER_ID)!.points).toBe(original);
+  });
 });
 
 describe("enrollmentsApi.markQuizPassed", () => {

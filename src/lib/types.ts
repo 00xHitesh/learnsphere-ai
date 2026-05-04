@@ -8,6 +8,7 @@ export interface User {
   role: Role;
   interests: string[];
   createdAt: string;
+  points: number;
 }
 
 export interface Lesson {

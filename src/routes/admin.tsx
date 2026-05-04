@@ -1,7 +1,20 @@
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-store";
-import { useAdminStats } from "@/lib/query/stats";
+import { useAdminStats, useRevenueByPeriod, useActiveUsersByPeriod } from "@/lib/query/stats";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import type { StatPeriod } from "@/lib/api/stats";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 
 export const Route = createFileRoute("/admin")({ component: AdminLayout });
 
@@ -83,8 +96,45 @@ function AdminLayout() {
   );
 }
 
+const PERIOD_LABELS: Record<StatPeriod, string> = {
+  daily: "Daily",
+  weekly: "Weekly",
+  monthly: "Monthly",
+};
+
+function PeriodTabs({
+  value,
+  onChange,
+}: {
+  value: StatPeriod;
+  onChange: (p: StatPeriod) => void;
+}) {
+  return (
+    <div className="flex gap-1 rounded-lg bg-secondary p-1">
+      {(["daily", "weekly", "monthly"] as StatPeriod[]).map((p) => (
+        <button
+          key={p}
+          onClick={() => onChange(p)}
+          className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+            value === p
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {PERIOD_LABELS[p]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function Overview() {
   const { data: stats } = useAdminStats();
+  const [revenuePeriod, setRevenuePeriod] = useState<StatPeriod>("weekly");
+  const [usersPeriod, setUsersPeriod] = useState<StatPeriod>("weekly");
+
+  const { data: revenueData = [] } = useRevenueByPeriod(revenuePeriod);
+  const { data: activeUsersData = [] } = useActiveUsersByPeriod(usersPeriod);
 
   const statItems = [
     { label: "Total users", value: stats?.totalUsers ?? "—" },
@@ -93,8 +143,16 @@ function Overview() {
     { label: "Revenue", value: stats ? `$${stats.revenue.toLocaleString()}` : "—" },
   ];
 
+  const tooltipStyle = {
+    fontSize: 12,
+    borderRadius: 8,
+    border: "1px solid var(--border)",
+    background: "var(--card)",
+  };
+
   return (
     <div className="space-y-10">
+      {/* ── Stat tiles ─────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statItems.map((s) => (
           <div key={s.label} className="rounded-xl border border-border bg-card p-5">
@@ -103,6 +161,64 @@ function Overview() {
           </div>
         ))}
       </div>
+
+      {/* ── Revenue chart ──────────────────────────────────────── */}
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-serif text-xl text-foreground">Revenue</h2>
+          <PeriodTabs value={revenuePeriod} onChange={setRevenuePeriod} />
+        </div>
+        <ResponsiveContainer width="100%" height={220} className="mt-6">
+          <BarChart data={revenueData} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis
+              tick={{ fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(v) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+            />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              formatter={(v: number) => [`$${v.toLocaleString()}`, "Revenue"]}
+            />
+            <Bar
+              dataKey="value"
+              radius={[4, 4, 0, 0]}
+              fill="oklch(0.52 0.26 290)"
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ── Active users chart ─────────────────────────────────── */}
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-serif text-xl text-foreground">Active users</h2>
+          <PeriodTabs value={usersPeriod} onChange={setUsersPeriod} />
+        </div>
+        <ResponsiveContainer width="100%" height={220} className="mt-6">
+          <LineChart data={activeUsersData} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              formatter={(v: number) => [v.toLocaleString(), "Active users"]}
+            />
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke="oklch(0.60 0.28 340)"
+              strokeWidth={2}
+              dot={{ r: 4, fill: "oklch(0.60 0.28 340)", strokeWidth: 0 }}
+              activeDot={{ r: 6 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ── Top courses table ──────────────────────────────────── */}
       <div>
         <h2 className="font-serif text-xl text-foreground">Top courses</h2>
         <div className="mt-4 overflow-hidden rounded-lg border border-border">

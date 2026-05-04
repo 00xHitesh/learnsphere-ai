@@ -54,6 +54,7 @@ export function useToggleLessonComplete() {
     onSuccess: (_, { userId, courseId }) => {
       qc.invalidateQueries({ queryKey: qk.enrollments.detail(userId, courseId) });
       qc.invalidateQueries({ queryKey: qk.enrollments.byUser(userId) });
+      qc.invalidateQueries({ queryKey: qk.users.list() });
     },
   });
 }

@@ -38,6 +38,8 @@ export const enrollmentsApi = {
       e.completedLessonIds = has
         ? e.completedLessonIds.filter((id) => id !== lessonId)
         : [...e.completedLessonIds, lessonId];
+      const user = db.users.find((u) => u.id === userId);
+      if (user) user.points += has ? -10 : 10;
       return { ...e };
     }),
 

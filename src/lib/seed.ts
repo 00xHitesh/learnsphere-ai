@@ -9,6 +9,7 @@ export const seedUsers: User[] = [
     role: "admin",
     interests: [],
     createdAt: new Date().toISOString(),
+    points: 0,
   },
   {
     id: "u-demo",
@@ -18,6 +19,7 @@ export const seedUsers: User[] = [
     role: "user",
     interests: ["Design", "Programming"],
     createdAt: new Date().toISOString(),
+    points: 0,
   },
 ];
 

@@ -22,6 +22,8 @@ export const qk = {
   },
   stats: {
     overview: () => ["stats", "overview"] as const,
+    revenue: (period: string) => ["stats", "revenue", period] as const,
+    activeUsers: (period: string) => ["stats", "active-users", period] as const,
   },
   chat: {
     byUser: (userId: string) => ["chat", userId] as const,

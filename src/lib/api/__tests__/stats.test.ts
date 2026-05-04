@@ -75,3 +75,53 @@ describe("statsApi.overview", () => {
     expect(after.totalEnrollments).toBe(before.totalEnrollments + 1);
   });
 });
+
+describe("statsApi.revenueByPeriod", () => {
+  it("returns 7 data points for daily", async () => {
+    const result = await statsApi.revenueByPeriod("daily");
+    expect(result.length).toBe(7);
+  });
+
+  it("returns 4 data points for weekly", async () => {
+    const result = await statsApi.revenueByPeriod("weekly");
+    expect(result.length).toBe(4);
+  });
+
+  it("returns 6 data points for monthly", async () => {
+    const result = await statsApi.revenueByPeriod("monthly");
+    expect(result.length).toBe(6);
+  });
+
+  it("each point has a label and a positive value", async () => {
+    const result = await statsApi.revenueByPeriod("weekly");
+    for (const point of result) {
+      expect(typeof point.label).toBe("string");
+      expect(point.value).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("statsApi.activeUsersByPeriod", () => {
+  it("returns 7 data points for daily", async () => {
+    const result = await statsApi.activeUsersByPeriod("daily");
+    expect(result.length).toBe(7);
+  });
+
+  it("returns 4 data points for weekly", async () => {
+    const result = await statsApi.activeUsersByPeriod("weekly");
+    expect(result.length).toBe(4);
+  });
+
+  it("returns 6 data points for monthly", async () => {
+    const result = await statsApi.activeUsersByPeriod("monthly");
+    expect(result.length).toBe(6);
+  });
+
+  it("each point has a label and a positive value", async () => {
+    const result = await statsApi.activeUsersByPeriod("monthly");
+    for (const point of result) {
+      expect(typeof point.label).toBe("string");
+      expect(point.value).toBeGreaterThan(0);
+    }
+  });
+});

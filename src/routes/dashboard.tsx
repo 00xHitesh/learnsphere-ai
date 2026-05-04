@@ -5,11 +5,29 @@ import { useMyEnrollments } from "@/lib/query/enrollments";
 import { useMyTransactions } from "@/lib/query/transactions";
 import { CertificateButton } from "@/components/CertificateButton";
 import { Button } from "@/components/ui/button";
-import { Bot, CheckCircle2 } from "lucide-react";
+import { Bot, CheckCircle2, Zap } from "lucide-react";
 import { CourseIcon } from "@/components/CourseIcon";
 import type { Course, Enrollment } from "@/lib/types";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 export const Route = createFileRoute("/dashboard")({ component: DashboardPage });
+
+const POINTS_PER_LESSON = 10;
+
+function parseDurationMinutes(duration: string): number {
+  const [m, s] = duration.split(":").map(Number);
+  return m + (s || 0) / 60;
+}
 
 function getProgress(enrollment: Enrollment, totalLessons: number) {
   if (!enrollment || totalLessons === 0) return 0;
@@ -40,8 +58,31 @@ function DashboardPage() {
     })
     .filter((x): x is { course: Course; enrollment: Enrollment; pct: number } => !!x);
 
-  const inProgress = myCourses.filter((x) => x.pct < 100);
+  const inProgress = myCourses.filter((x) => x.pct > 0 && x.pct < 100);
   const completed = myCourses.filter((x) => x.pct === 100);
+  const notStarted = myCourses.filter((x) => x.pct === 0);
+
+  // Points derived from enrollment data (always accurate)
+  const totalPoints =
+    enrollments.reduce((sum, e) => sum + e.completedLessonIds.length, 0) * POINTS_PER_LESSON;
+
+  // Pie chart data
+  const pieData = [
+    { name: "Completed", value: completed.length, color: "oklch(0.52 0.26 290)" },
+    { name: "In Progress", value: inProgress.length, color: "oklch(0.60 0.28 340)" },
+    { name: "Not Started", value: notStarted.length, color: "oklch(0.75 0.05 290)" },
+  ].filter((d) => d.value > 0);
+
+  // Bar chart: time spent per course (sum of completed lesson durations)
+  const timeData = myCourses.map(({ course, enrollment }) => ({
+    name: course.title.length > 18 ? course.title.slice(0, 16) + "…" : course.title,
+    minutes: Math.round(
+      enrollment.completedLessonIds.reduce((sum, lessonId) => {
+        const lesson = course.lessons.find((l) => l.id === lessonId);
+        return sum + (lesson ? parseDurationMinutes(lesson.duration) : 0);
+      }, 0),
+    ),
+  }));
 
   const recommended = courses
     .filter(
@@ -51,24 +92,103 @@ function DashboardPage() {
     )
     .slice(0, 3);
 
-  const subtitleParts: string[] = [];
-  if (inProgress.length > 0)
-    subtitleParts.push(`${inProgress.length} in progress`);
-  if (completed.length > 0)
-    subtitleParts.push(`${completed.length} completed`);
-
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-      <div className="mb-10">
-        <h1 className="font-serif text-4xl text-foreground sm:text-5xl">
-          Hey, {currentUser.name.split(" ")[0]}!
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          {myCourses.length === 0
-            ? "Nothing here yet — let's fix that. Pick a course and get moving."
-            : subtitleParts.join(" · ")}
-        </p>
+      {/* ── Hero / Points ─────────────────────────────────────── */}
+      <div className="mb-10 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-4xl text-foreground sm:text-5xl">
+            Hey, {currentUser.name.split(" ")[0]}!
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            {myCourses.length === 0
+              ? "Nothing here yet — let's fix that."
+              : `${completed.length} completed · ${inProgress.length} in progress`}
+          </p>
+        </div>
+        <div
+          className="flex items-center gap-3 rounded-2xl px-5 py-4"
+          style={{ background: "var(--gradient-accent)" }}
+        >
+          <Zap className="h-6 w-6 text-white" fill="white" />
+          <div>
+            <div className="text-3xl font-bold text-white leading-none">{totalPoints}</div>
+            <div className="mt-0.5 text-xs text-white/80">XP earned</div>
+          </div>
+        </div>
       </div>
+
+      {/* ── Charts (only when enrolled in courses) ────────────── */}
+      {myCourses.length > 0 && (
+        <div className="mb-12 grid gap-6 sm:grid-cols-2">
+          {/* Pie: course completion breakdown */}
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <h3 className="text-sm font-medium text-foreground">Course breakdown</h3>
+            <div className="mt-4 flex items-center gap-6">
+              <ResponsiveContainer width={120} height={120}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    innerRadius={36}
+                    outerRadius={56}
+                    paddingAngle={3}
+                    strokeWidth={0}
+                  >
+                    {pieData.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-col gap-2">
+                {pieData.map((d) => (
+                  <div key={d.name} className="flex items-center gap-2">
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ background: d.color }}
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {d.name} <span className="font-medium text-foreground">({d.value})</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Bar: time spent per course */}
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <h3 className="text-sm font-medium text-foreground">Time spent (minutes)</h3>
+            {timeData.every((d) => d.minutes === 0) ? (
+              <p className="mt-6 text-center text-sm text-muted-foreground">
+                Complete some lessons to see time data
+              </p>
+            ) : (
+              <ResponsiveContainer width="100%" height={120} className="mt-4">
+                <BarChart data={timeData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip
+                    contentStyle={{
+                      fontSize: 12,
+                      borderRadius: 8,
+                      border: "1px solid var(--border)",
+                      background: "var(--card)",
+                    }}
+                    formatter={(v: number) => [`${v} min`, "Time spent"]}
+                  />
+                  <Bar
+                    dataKey="minutes"
+                    radius={[4, 4, 0, 0]}
+                    fill="oklch(0.52 0.26 290)"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── In Progress ───────────────────────────────────────── */}
       <section>
