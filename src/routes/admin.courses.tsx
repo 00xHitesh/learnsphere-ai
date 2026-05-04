@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAdminCourses, useDeleteCourse, useToggleCourseApproval, useUpsertCourse } from "@/lib/query/courses";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ChevronDown, ChevronUp, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import type { Course, Lesson, Quiz, QuizQuestion } from "@/lib/types";
@@ -43,6 +44,7 @@ function AdminCourses() {
   const deleteMutation = useDeleteCourse();
   const toggleApprovalMutation = useToggleCourseApproval();
   const [editing, setEditing] = useState<Course | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; title: string } | null>(null);
 
   return (
     <div>
@@ -86,13 +88,7 @@ function AdminCourses() {
                       <Pencil className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(`Delete "${c.title}"?`)) {
-                          deleteMutation.mutate(c.id, {
-                            onSuccess: () => toast.success("Course deleted"),
-                          });
-                        }
-                      }}
+                      onClick={() => setConfirmDelete({ id: c.id, title: c.title })}
                       className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -116,6 +112,20 @@ function AdminCourses() {
           }}
         />
       )}
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title={`Delete "${confirmDelete?.title}"?`}
+        body="This will permanently remove the course and cannot be undone."
+        confirmLabel="Delete course"
+        onConfirm={() => {
+          if (confirmDelete) {
+            deleteMutation.mutate(confirmDelete.id, {
+              onSuccess: () => toast.success("Course deleted"),
+            });
+          }
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }
