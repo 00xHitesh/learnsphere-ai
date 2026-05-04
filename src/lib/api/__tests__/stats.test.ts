@@ -25,8 +25,8 @@ describe("statsApi.overview", () => {
 
   it("counts total enrollments correctly", async () => {
     db.enrollments.push(
-      { id: "e-1", userId: "u-demo", courseId: db.courses[0].id, completedLessonIds: [], passedQuizIds: [], enrolledAt: "" },
-      { id: "e-2", userId: "u-admin", courseId: db.courses[0].id, completedLessonIds: [], passedQuizIds: [], enrolledAt: "" },
+      { id: "e-1", userId: "u-demo", courseId: db.courses[0].id, completedLessonIds: [], passedQuizIds: [], enrolledAt: "", timeSpentSeconds: 0 },
+      { id: "e-2", userId: "u-admin", courseId: db.courses[0].id, completedLessonIds: [], passedQuizIds: [], enrolledAt: "", timeSpentSeconds: 0 },
     );
     const stats = await statsApi.overview();
     expect(stats.totalEnrollments).toBe(2);
@@ -70,6 +70,7 @@ describe("statsApi.overview", () => {
       completedLessonIds: [],
       passedQuizIds: [],
       enrolledAt: "",
+      timeSpentSeconds: 0,
     });
     const after = await statsApi.overview();
     expect(after.totalEnrollments).toBe(before.totalEnrollments + 1);

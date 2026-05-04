@@ -23,8 +23,8 @@ describe("enrollmentsApi.listByUser", () => {
 
   it("returns only the enrollments for the specified user", async () => {
     db.enrollments.push(
-      { id: "e-1", userId: USER_ID, courseId: COURSE_ID(), completedLessonIds: [], passedQuizIds: [], enrolledAt: "" },
-      { id: "e-2", userId: "u-other", courseId: COURSE_ID(), completedLessonIds: [], passedQuizIds: [], enrolledAt: "" },
+      { id: "e-1", userId: USER_ID, courseId: COURSE_ID(), completedLessonIds: [], passedQuizIds: [], enrolledAt: "", timeSpentSeconds: 0 },
+      { id: "e-2", userId: "u-other", courseId: COURSE_ID(), completedLessonIds: [], passedQuizIds: [], enrolledAt: "", timeSpentSeconds: 0 },
     );
     const result = await enrollmentsApi.listByUser(USER_ID);
     expect(result.length).toBe(1);
@@ -41,6 +41,7 @@ describe("enrollmentsApi.get", () => {
       completedLessonIds: [],
       passedQuizIds: [],
       enrolledAt: "",
+      timeSpentSeconds: 0,
     });
     const result = await enrollmentsApi.get(USER_ID, COURSE_ID());
     expect(result?.id).toBe("e-1");
@@ -115,6 +116,28 @@ describe("enrollmentsApi.toggleLessonComplete", () => {
     await enrollmentsApi.toggleLessonComplete(USER_ID, COURSE_ID(), lessonId);
     await enrollmentsApi.toggleLessonComplete(USER_ID, COURSE_ID(), lessonId);
     expect(db.users.find((u) => u.id === USER_ID)!.points).toBe(original);
+  });
+});
+
+describe("enrollmentsApi.recordTimeSpent", () => {
+  it("accumulates seconds in timeSpentSeconds", async () => {
+    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
+    await enrollmentsApi.recordTimeSpent(USER_ID, COURSE_ID(), 120);
+    const e = db.enrollments.find((e) => e.userId === USER_ID);
+    expect(e?.timeSpentSeconds).toBe(120);
+  });
+
+  it("is additive across multiple calls", async () => {
+    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
+    await enrollmentsApi.recordTimeSpent(USER_ID, COURSE_ID(), 60);
+    await enrollmentsApi.recordTimeSpent(USER_ID, COURSE_ID(), 90);
+    const e = db.enrollments.find((e) => e.userId === USER_ID);
+    expect(e?.timeSpentSeconds).toBe(150);
+  });
+
+  it("returns null when user is not enrolled", async () => {
+    const result = await enrollmentsApi.recordTimeSpent(USER_ID, COURSE_ID(), 60);
+    expect(result).toBeNull();
   });
 });
 

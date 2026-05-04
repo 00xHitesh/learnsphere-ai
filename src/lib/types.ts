@@ -79,6 +79,7 @@ export interface Enrollment {
   completedLessonIds: string[];
   passedQuizIds: string[];
   enrolledAt: string;
+  timeSpentSeconds: number;
 }
 
 export interface Transaction {

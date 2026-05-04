@@ -24,11 +24,6 @@ export const Route = createFileRoute("/dashboard")({ component: DashboardPage })
 
 const POINTS_PER_LESSON = 10;
 
-function parseDurationMinutes(duration: string): number {
-  const [m, s] = duration.split(":").map(Number);
-  return m + (s || 0) / 60;
-}
-
 function getProgress(enrollment: Enrollment, totalLessons: number) {
   if (!enrollment || totalLessons === 0) return 0;
   return Math.round((enrollment.completedLessonIds.length / totalLessons) * 100);
@@ -73,15 +68,10 @@ function DashboardPage() {
     { name: "Not Started", value: notStarted.length, color: "oklch(0.75 0.05 290)" },
   ].filter((d) => d.value > 0);
 
-  // Bar chart: time spent per course (sum of completed lesson durations)
+  // Bar chart: actual time spent per course, tracked in the learn page
   const timeData = myCourses.map(({ course, enrollment }) => ({
     name: course.title.length > 18 ? course.title.slice(0, 16) + "…" : course.title,
-    minutes: Math.round(
-      enrollment.completedLessonIds.reduce((sum, lessonId) => {
-        const lesson = course.lessons.find((l) => l.id === lessonId);
-        return sum + (lesson ? parseDurationMinutes(lesson.duration) : 0);
-      }, 0),
-    ),
+    minutes: Math.round(enrollment.timeSpentSeconds / 60),
   }));
 
   const recommended = courses
@@ -162,7 +152,7 @@ function DashboardPage() {
             <h3 className="text-sm font-medium text-foreground">Time spent (minutes)</h3>
             {timeData.every((d) => d.minutes === 0) ? (
               <p className="mt-6 text-center text-sm text-muted-foreground">
-                Complete some lessons to see time data
+                Spend time in a lesson to see your stats
               </p>
             ) : (
               <ResponsiveContainer width="100%" height={120} className="mt-4">

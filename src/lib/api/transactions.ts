@@ -35,6 +35,7 @@ export const transactionsApi = {
         completedLessonIds: [],
         passedQuizIds: [],
         enrolledAt: new Date().toISOString(),
+        timeSpentSeconds: 0,
       };
       db.enrollments.push(enrollment);
     }

@@ -59,6 +59,25 @@ export function useToggleLessonComplete() {
   });
 }
 
+export function useRecordTimeSpent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      userId,
+      courseId,
+      seconds,
+    }: {
+      userId: string;
+      courseId: string;
+      seconds: number;
+    }) => enrollmentsApi.recordTimeSpent(userId, courseId, seconds),
+    onSuccess: (_, { userId, courseId }) => {
+      qc.invalidateQueries({ queryKey: qk.enrollments.detail(userId, courseId) });
+      qc.invalidateQueries({ queryKey: qk.enrollments.byUser(userId) });
+    },
+  });
+}
+
 export function useMarkQuizPassed() {
   const qc = useQueryClient();
   return useMutation({

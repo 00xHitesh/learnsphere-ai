@@ -282,8 +282,9 @@ CREATE TABLE enrollments (
   user_id         UUID        NOT NULL REFERENCES users   (id) ON DELETE CASCADE,
   course_id       UUID        NOT NULL REFERENCES courses (id) ON DELETE CASCADE,
   -- Quiz IDs the student has passed; certificate gated on this being complete
-  passed_quiz_ids TEXT[]      NOT NULL DEFAULT '{}',
-  enrolled_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  passed_quiz_ids    TEXT[]      NOT NULL DEFAULT '{}',
+  time_spent_seconds INTEGER     NOT NULL DEFAULT 0,
+  enrolled_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (user_id, course_id)
 );

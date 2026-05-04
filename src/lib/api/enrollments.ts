@@ -25,6 +25,7 @@ export const enrollmentsApi = {
         completedLessonIds: [],
         passedQuizIds: [],
         enrolledAt: new Date().toISOString(),
+        timeSpentSeconds: 0,
       };
       db.enrollments.push(enrollment);
       return { ...enrollment };
@@ -40,6 +41,14 @@ export const enrollmentsApi = {
         : [...e.completedLessonIds, lessonId];
       const user = db.users.find((u) => u.id === userId);
       if (user) user.points += has ? -10 : 10;
+      return { ...e };
+    }),
+
+  recordTimeSpent: (userId: string, courseId: string, seconds: number) =>
+    mockRequest(() => {
+      const e = db.enrollments.find((e) => e.userId === userId && e.courseId === courseId);
+      if (!e) return null;
+      e.timeSpentSeconds += seconds;
       return { ...e };
     }),
 

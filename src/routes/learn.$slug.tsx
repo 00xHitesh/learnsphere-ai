@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-store";
 import { useCourse } from "@/lib/query/courses";
-import { useEnrollment, useEnroll, useToggleLessonComplete, useMarkQuizPassed } from "@/lib/query/enrollments";
+import { useEnrollment, useEnroll, useToggleLessonComplete, useMarkQuizPassed, useRecordTimeSpent } from "@/lib/query/enrollments";
 import { CertificateButton } from "@/components/CertificateButton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,9 +72,19 @@ function LearnPage() {
   const toggleLesson = useToggleLessonComplete();
   const markQuizPassed = useMarkQuizPassed();
 
+  const recordTimeSpent = useRecordTimeSpent();
+
   const [showCompletion, setShowCompletion] = useState(false);
   const completionShown = useRef(false);
   const lessonStartTime = useRef<number | null>(null);
+
+  // Stable refs so the cleanup closure always reads the latest values
+  const userIdRef = useRef(currentUser?.id);
+  const courseIdRef = useRef(course?.id);
+  const recordTimeRef = useRef(recordTimeSpent.mutate);
+  userIdRef.current = currentUser?.id;
+  courseIdRef.current = course?.id;
+  recordTimeRef.current = recordTimeSpent.mutate;
 
   const total = course?.lessons.length ?? 0;
   const done = enrollment?.completedLessonIds.length ?? 0;
@@ -90,9 +100,18 @@ function LearnPage() {
   const lesson = course?.lessons.find((l) => l.id === activeLessonId);
   const quiz = course?.quizzes?.find((q) => q.id === activeQuizId);
 
-  // Reset lesson timer whenever the active lesson changes
+  // Track time on each lesson; flush accumulated seconds when lesson changes or component unmounts
   useEffect(() => {
-    lessonStartTime.current = Date.now();
+    const start = Date.now();
+    lessonStartTime.current = start;
+    return () => {
+      const userId = userIdRef.current;
+      const courseId = courseIdRef.current;
+      if (!userId || !courseId) return;
+      const elapsed = Math.round((Date.now() - start) / 1000);
+      if (elapsed >= 5) recordTimeRef.current({ userId, courseId, seconds: elapsed });
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeLessonId]);
 
   // Auto-enroll for free courses on entry

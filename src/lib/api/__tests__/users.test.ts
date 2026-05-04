@@ -48,6 +48,7 @@ describe("usersApi.delete", () => {
       completedLessonIds: [],
       passedQuizIds: [],
       enrolledAt: "",
+      timeSpentSeconds: 0,
     });
     await usersApi.delete("u-demo");
     expect(db.enrollments.find((e) => e.userId === "u-demo")).toBeUndefined();
@@ -80,6 +81,7 @@ describe("usersApi.delete", () => {
       completedLessonIds: [],
       passedQuizIds: [],
       enrolledAt: "",
+      timeSpentSeconds: 0,
     });
     await usersApi.delete("u-demo");
     expect(db.enrollments.find((e) => e.userId === "u-admin")).toBeTruthy();

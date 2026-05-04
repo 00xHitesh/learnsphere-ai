@@ -75,6 +75,7 @@ describe("transactionsApi.purchase", () => {
       completedLessonIds: [],
       passedQuizIds: [],
       enrolledAt: "",
+      timeSpentSeconds: 0,
     });
     await transactionsApi.purchase(USER_ID, course.id);
     const userEnrollments = db.enrollments.filter(

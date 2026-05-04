@@ -110,7 +110,7 @@ describe("coursesApi.delete", () => {
   it("cascades — removes related enrollments", async () => {
     const c = mockCourse();
     await coursesApi.upsert(c);
-    db.enrollments.push({ id: "e-1", userId: "u-demo", courseId: c.id, completedLessonIds: [], passedQuizIds: [], enrolledAt: "" });
+    db.enrollments.push({ id: "e-1", userId: "u-demo", courseId: c.id, completedLessonIds: [], passedQuizIds: [], enrolledAt: "", timeSpentSeconds: 0 });
     await coursesApi.delete(c.id);
     expect(db.enrollments.find((e) => e.courseId === c.id)).toBeUndefined();
   });
