@@ -1,3 +1,8 @@
+/**
+ * Sticky top navigation bar. Shows the logo, main nav links, theme toggle, and
+ * auth-aware actions (Dashboard / Admin / Sign out for logged-in users, Sign in /
+ * Join free for guests). Collapses to a hamburger menu on mobile.
+ */
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Logo } from "./Logo";
 import { useAuth } from "@/lib/auth-store";

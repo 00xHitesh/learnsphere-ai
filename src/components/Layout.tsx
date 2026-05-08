@@ -1,3 +1,7 @@
+/**
+ * Root page shell. Wraps every route with Header, Footer, and the floating Chatbot widget.
+ * Rendered by __root.tsx so every page inherits this structure automatically.
+ */
 import type { ReactNode } from "react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";

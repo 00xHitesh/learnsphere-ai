@@ -1,3 +1,9 @@
+/**
+ * Accessible confirmation modal that replaces browser confirm().
+ * Renders a backdrop (click-to-dismiss) around a card with an alert icon,
+ * title, optional body text, and Cancel / Confirm buttons.
+ * Returns null when open=false — no DOM cost when hidden.
+ */
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
 

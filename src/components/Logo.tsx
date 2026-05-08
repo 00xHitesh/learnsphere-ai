@@ -1,3 +1,7 @@
+/**
+ * Brand mark: gradient square badge ("L") alongside the "Lumen" wordmark.
+ * Uses var(--gradient-accent) so it automatically adapts to theme changes.
+ */
 export function Logo({ className = "" }: { className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2 ${className}`}>

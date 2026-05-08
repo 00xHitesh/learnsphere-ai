@@ -1,3 +1,9 @@
+/**
+ * Generates and downloads a course completion certificate as a PNG.
+ * Everything is rendered client-side on a 1200×848px <canvas> — no server required.
+ * Certificate includes student name, course title, instructor, issue date, and a
+ * random certificate ID. Font sizes auto-fit long names/titles via fitText().
+ */
 import { Button } from "@/components/ui/button";
 import { Award } from "lucide-react";
 

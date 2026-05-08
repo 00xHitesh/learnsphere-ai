@@ -1,3 +1,7 @@
+/**
+ * Four-column site footer with brand tagline, nav links, and demo credentials.
+ * Rendered by Layout so it appears on every page.
+ */
 import { Link } from "@tanstack/react-router";
 import { Logo } from "./Logo";
 

@@ -1,3 +1,9 @@
+/**
+ * Live session card with real-time status (live / upcoming / ended) updated every
+ * second via setInterval. Shows an animated LIVE badge with a join button when live,
+ * a live countdown timer with a register link when upcoming, and a muted ended state.
+ * Pass compact=true for a condensed version used on the homepage.
+ */
 import { useEffect, useState } from "react";
 import type { LiveSession } from "@/lib/types";
 import { Button } from "@/components/ui/button";

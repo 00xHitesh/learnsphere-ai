@@ -1,3 +1,9 @@
+/**
+ * Floating AI study assistant widget (bottom-right corner). Only renders for
+ * authenticated users. Replies are generated client-side by mockReply() using
+ * keyword matching. Chat history is persisted per-user in db.chats via chatApi.
+ * Replace mockReply() with a real API call to connect a live LLM.
+ */
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-store";
 import { useCourses } from "@/lib/query/courses";
@@ -60,13 +66,13 @@ export function Chatbot() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground shadow-[var(--shadow-elegant)] transition-transform hover:scale-105"
+          className="fixed bottom-6 right-6 z-50 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground shadow-(--shadow-elegant) transition-transform hover:scale-105"
         >
           <MessageCircle className="h-4 w-4" /> Ask Lumen
         </button>
       )}
       {open && (
-        <div className="fixed bottom-6 right-6 z-50 flex h-[28rem] w-[22rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-elegant)]">
+        <div className="fixed bottom-6 right-6 z-50 flex h-112 w-88 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-(--shadow-elegant)">
           <div className="flex items-center justify-between border-b border-border bg-secondary px-4 py-3">
             <div className="flex items-center gap-2">
               <Bot className="h-4 w-4 text-primary" />

@@ -1,3 +1,8 @@
+/**
+ * Course grid card. Shows a coloured cover tile, category badge, title, 2-line
+ * summary, rating, student count, and price. Links to /courses/:slug on click.
+ * The cover color cycles through a 4-tone oklch palette keyed by the `index` prop.
+ */
 import { Link } from "@tanstack/react-router";
 import type { Course } from "@/lib/types";
 import { Star, Users } from "lucide-react";
