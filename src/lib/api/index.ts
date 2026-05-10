@@ -1,4 +1,5 @@
 export { authApi } from "./auth";
+export { localeApi } from "./locale";
 export { chatApi } from "./chat";
 export { coursesApi } from "./courses";
 export { enrollmentsApi } from "./enrollments";

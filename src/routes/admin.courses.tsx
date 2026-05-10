@@ -38,7 +38,7 @@ const blank = (): Course => ({
   summary: "",
   category: "Design",
   level: "Beginner",
-  price: 0,
+  listPrice: 0,
   rating: 4.5,
   students: 0,
   instructor: "",
@@ -84,7 +84,13 @@ function AdminCourses() {
               <tr key={c.id} className="border-t border-border">
                 <td className="px-4 py-2">{c.title}</td>
                 <td className="px-4 py-2 text-muted-foreground">{c.category}</td>
-                <td className="px-4 py-2">{c.price === 0 ? "Free" : `$${c.price}`}</td>
+                <td className="px-4 py-2">
+                  {c.listPrice === 0
+                    ? "Free"
+                    : c.salePrice !== undefined
+                      ? `$${c.salePrice} / $${c.listPrice}`
+                      : `$${c.listPrice}`}
+                </td>
                 <td className="px-4 py-2">
                   <select
                     value={c.status}
@@ -200,9 +206,16 @@ function Editor({
             onChange={(v) => update("level", v as Course["level"])}
           />
           <F
-            label="Price (USD)"
-            value={String(c.price)}
-            onChange={(v) => update("price", Number(v) || 0)}
+            label="List price USD (0 = free)"
+            value={String(c.listPrice)}
+            onChange={(v) => update("listPrice", Number(v) || 0)}
+          />
+          <F
+            label="Sale price USD (blank = none)"
+            value={c.salePrice !== undefined ? String(c.salePrice) : ""}
+            onChange={(v) =>
+              update("salePrice", v.trim() === "" ? undefined : Number(v) || 0)
+            }
           />
           <F label="Instructor" value={c.instructor} onChange={(v) => update("instructor", v)} />
           <F

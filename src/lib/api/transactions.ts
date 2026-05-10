@@ -19,7 +19,7 @@ export const transactionsApi = {
       id: `t-${Date.now()}`,
       userId,
       courseId,
-      amount: course.price,
+      amount: course.salePrice ?? course.listPrice,
       status: "success",
       date: new Date().toISOString(),
     };

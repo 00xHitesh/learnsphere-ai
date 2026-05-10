@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth-store";
 import { useCourse } from "@/lib/query/courses";
 import { usePurchase } from "@/lib/query/transactions";
+import { usePriceFormatter } from "@/lib/query/locale";
 import { Button } from "@/components/ui/button";
 import { CourseIcon } from "@/components/CourseIcon";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ function CheckoutPage() {
   const { data: course, isLoading } = useCourse(slug);
   const purchaseMutation = usePurchase();
   const navigate = useNavigate();
+  const format = usePriceFormatter();
   const [promoInput, setPromoInput] = useState("");
   const [promoApplied, setPromoApplied] = useState<string | null>(null);
   const [discount, setDiscount] = useState(0);
@@ -63,8 +65,9 @@ function CheckoutPage() {
       </div>
     );
 
-  const finalPrice = +(course.price * (1 - discount)).toFixed(2);
-  const discountAmount = +(course.price * discount).toFixed(2);
+  const basePrice = course.salePrice ?? course.listPrice;
+  const finalPrice = +(basePrice * (1 - discount)).toFixed(2);
+  const discountAmount = +(basePrice * discount).toFixed(2);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,7 +144,7 @@ function CheckoutPage() {
         </div>
         <Button type="submit" className="mt-6 w-full" disabled={purchaseMutation.isPending}>
           <Lock className="mr-2 h-4 w-4" />
-          {purchaseMutation.isPending ? "Processing…" : `Pay $${finalPrice}`}
+          {purchaseMutation.isPending ? "Processing…" : `Pay ${format(finalPrice)}`}
         </Button>
       </form>
       <aside className="rounded-2xl border border-border bg-secondary/40 p-6">
@@ -158,21 +161,27 @@ function CheckoutPage() {
         <dl className="mt-4 space-y-2 text-sm">
           <div className="flex justify-between text-muted-foreground">
             <dt>Subtotal</dt>
-            <dd>${course.price}</dd>
+            <dd>{format(basePrice)}</dd>
           </div>
+          {course.salePrice !== undefined && (
+            <div className="flex justify-between text-primary">
+              <dt>Sale</dt>
+              <dd>was {format(course.listPrice)}</dd>
+            </div>
+          )}
           {discount > 0 && (
             <div className="flex justify-between text-primary">
               <dt>Promo ({promoApplied})</dt>
-              <dd>−${discountAmount}</dd>
+              <dd>−{format(discountAmount)}</dd>
             </div>
           )}
           <div className="flex justify-between text-muted-foreground">
             <dt>Tax</dt>
-            <dd>$0</dd>
+            <dd>{format(0)}</dd>
           </div>
           <div className="flex justify-between border-t border-border pt-2 font-medium text-foreground">
             <dt>Total</dt>
-            <dd>${finalPrice}</dd>
+            <dd>{format(finalPrice)}</dd>
           </div>
         </dl>
       </aside>

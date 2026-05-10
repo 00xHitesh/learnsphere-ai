@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-store";
+import { usePriceFormatter } from "@/lib/query/locale";
 import { useCourses } from "@/lib/query/courses";
 import { useMyWishlist, useToggleWishlist } from "@/lib/query/wishlist";
 import { useMyEnrollments, useEnroll } from "@/lib/query/enrollments";
@@ -41,7 +42,7 @@ function WishlistPage() {
     .map((w) => courses.find((c) => c.id === w.courseId))
     .filter((c): c is Course => !!c);
 
-  const totalValue = list.reduce((sum, c) => sum + c.price, 0);
+  const totalValue = list.reduce((sum, c) => sum + (c.salePrice ?? c.listPrice), 0);
 
   const recommendations = courses
     .filter((c) => !wishlistIds.has(c.id) && !enrolledIds.has(c.id))
@@ -55,7 +56,7 @@ function WishlistPage() {
   }
 
   async function handleEnroll(course: Course) {
-    if (course.price === 0) {
+    if (course.listPrice === 0) {
       enroll.mutate(
         { userId: currentUser!.id, courseId: course.id },
         {
@@ -102,7 +103,7 @@ function WishlistPage() {
             <BookOpen className="h-4 w-4 text-primary" />
             <span>
               <span className="font-medium text-foreground">
-                {list.filter((c) => c.price === 0).length}
+                {list.filter((c) => c.listPrice === 0).length}
               </span>{" "}
               free
             </span>
@@ -181,11 +182,13 @@ function WishlistCard({
   onAction: () => void;
   actionPending: boolean;
 }) {
+  const format = usePriceFormatter();
+  const effectivePrice = course.salePrice ?? course.listPrice;
   const actionLabel = enrolled
     ? "Continue learning"
-    : course.price === 0
+    : course.listPrice === 0
       ? "Enroll for free"
-      : `Buy — $${course.price}`;
+      : `Buy — ${format(effectivePrice)}`;
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 transition-shadow hover:shadow-md sm:flex-row sm:items-center">
@@ -224,7 +227,12 @@ function WishlistCard({
       {/* Price + actions */}
       <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-end sm:gap-3">
         <div className="font-serif text-lg text-foreground">
-          {course.price === 0 ? "Free" : `$${course.price}`}
+          {format(effectivePrice)}
+          {course.salePrice !== undefined && (
+            <span className="ml-1.5 text-sm font-normal text-muted-foreground line-through">
+              {format(course.listPrice)}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" onClick={onAction} disabled={actionPending}>

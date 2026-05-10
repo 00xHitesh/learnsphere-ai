@@ -117,7 +117,7 @@ function LearnPage() {
   // Auto-enroll for free courses on entry
   useEffect(() => {
     if (!course || !currentUser || enrollment) return;
-    if (course.price === 0) {
+    if (course.listPrice === 0) {
       enrollMutation.mutate({ userId: currentUser.id, courseId: course.id });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -164,7 +164,7 @@ function LearnPage() {
     );
   }
 
-  if (!enrollment && course.price > 0) {
+  if (!enrollment && course.listPrice > 0) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-24 text-center">
         <h1 className="font-serif text-3xl text-foreground">Enroll to access this course</h1>

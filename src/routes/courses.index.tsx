@@ -30,8 +30,8 @@ function CoursesPage() {
   const courses = useMemo(() => {
     let list = [...allCourses];
     if (category !== "All") list = list.filter((c) => c.category === category);
-    if (price === "free") list = list.filter((c) => c.price === 0);
-    if (price === "paid") list = list.filter((c) => c.price > 0);
+    if (price === "free") list = list.filter((c) => c.listPrice === 0);
+    if (price === "paid") list = list.filter((c) => c.listPrice > 0);
     if (q.trim()) {
       const needle = q.toLowerCase();
       list = list.filter(
@@ -45,9 +45,9 @@ function CoursesPage() {
       case "newest":
         return [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
       case "price-low":
-        return [...list].sort((a, b) => a.price - b.price);
+        return [...list].sort((a, b) => (a.salePrice ?? a.listPrice) - (b.salePrice ?? b.listPrice));
       case "price-high":
-        return [...list].sort((a, b) => b.price - a.price);
+        return [...list].sort((a, b) => (b.salePrice ?? b.listPrice) - (a.salePrice ?? a.listPrice));
       default:
         return [...list].sort((a, b) => b.students - a.students);
     }

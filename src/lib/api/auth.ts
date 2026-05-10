@@ -26,6 +26,9 @@ export const authApi = {
         role: "user",
         interests: [],
         createdAt: new Date().toISOString(),
+        points: 0,
+        regionCode: "US",
+        currencyCode: "USD",
       };
       db.users.push(user);
       return user;
@@ -38,6 +41,15 @@ export const authApi = {
       const user = db.users.find((u) => u.id === userId);
       if (!user) throw new Error("User not found.");
       user.interests = interests;
+      return { ...user };
+    }),
+
+  updateLocale: (userId: string, regionCode: string, currencyCode: string) =>
+    mockRequest(() => {
+      const user = db.users.find((u) => u.id === userId);
+      if (!user) throw new Error("User not found.");
+      user.regionCode = regionCode;
+      user.currencyCode = currencyCode;
       return { ...user };
     }),
 

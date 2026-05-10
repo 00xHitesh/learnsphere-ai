@@ -49,7 +49,7 @@ describe("transactionsApi.listAll", () => {
 
 describe("transactionsApi.purchase", () => {
   it("creates a transaction record for a valid course", async () => {
-    const course = db.courses.find((c) => c.price > 0) ?? db.courses[0];
+    const course = db.courses.find((c) => c.listPrice > 0) ?? db.courses[0];
     await transactionsApi.purchase(USER_ID, course.id);
     expect(db.transactions.length).toBe(1);
     expect(db.transactions[0].userId).toBe(USER_ID);
@@ -91,9 +91,9 @@ describe("transactionsApi.purchase", () => {
   });
 
   it("records the correct price from the course", async () => {
-    const course = db.courses.find((c) => c.price > 0);
+    const course = db.courses.find((c) => c.listPrice > 0);
     if (!course) return; // skip if no paid courses in seed
     await transactionsApi.purchase(USER_ID, course.id);
-    expect(db.transactions[0].amount).toBe(course.price);
+    expect(db.transactions[0].amount).toBe(course.salePrice ?? course.listPrice);
   });
 });

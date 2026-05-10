@@ -1,4 +1,4 @@
-import type { Course, FeatureFlag, LiveSession, Quiz, User } from "./types";
+import type { Course, Currency, FeatureFlag, LiveSession, Quiz, Region, User } from "./types";
 
 export const seedUsers: User[] = [
   {
@@ -10,6 +10,8 @@ export const seedUsers: User[] = [
     interests: [],
     createdAt: new Date().toISOString(),
     points: 0,
+    regionCode: "US",
+    currencyCode: "USD",
   },
   {
     id: "u-demo",
@@ -20,6 +22,8 @@ export const seedUsers: User[] = [
     interests: ["Design", "Programming"],
     createdAt: new Date().toISOString(),
     points: 0,
+    regionCode: "US",
+    currencyCode: "USD",
   },
 ];
 
@@ -99,7 +103,7 @@ export const seedCourses: Course[] = [
       "Learn the principles behind elegant type systems, from kerning to scale, with practical studio exercises.",
     category: "Design",
     level: "Intermediate",
-    price: 0,
+    listPrice: 0,
     rating: 4.8,
     students: 2412,
     instructor: "Mira Hollander",
@@ -132,7 +136,8 @@ export const seedCourses: Course[] = [
       "Master TypeScript fundamentals with practical patterns for real codebases.",
     category: "Programming",
     level: "Beginner",
-    price: 49,
+    listPrice: 49,
+    salePrice: 29,
     rating: 4.7,
     students: 8810,
     instructor: "Kenji Romero",
@@ -164,7 +169,8 @@ export const seedCourses: Course[] = [
       "A meditative watercolor course focusing on restraint, washes, and quiet composition.",
     category: "Art",
     level: "Beginner",
-    price: 39,
+    listPrice: 39,
+    salePrice: 24,
     rating: 4.9,
     students: 1320,
     instructor: "Eloise Marchetti",
@@ -193,7 +199,7 @@ export const seedCourses: Course[] = [
       "Practical product strategy frameworks for technical founders and PMs.",
     category: "Business",
     level: "Intermediate",
-    price: 79,
+    listPrice: 79,
     rating: 4.6,
     students: 5230,
     instructor: "Harper Liang",
@@ -224,7 +230,8 @@ export const seedCourses: Course[] = [
       "Architectural principles for React applications that scale.",
     category: "Programming",
     level: "Advanced",
-    price: 129,
+    listPrice: 129,
+    salePrice: 89,
     rating: 4.9,
     students: 3104,
     instructor: "Sasha Vance",
@@ -257,7 +264,7 @@ export const seedCourses: Course[] = [
       "Practical writing course for product, marketing, and documentation copy.",
     category: "Writing",
     level: "Beginner",
-    price: 0,
+    listPrice: 0,
     rating: 4.7,
     students: 4112,
     instructor: "Dale Okonkwo",
@@ -351,6 +358,56 @@ export const seedLiveSessions: LiveSession[] = [
     maxAttendees: 300,
     status: "published" as const,
   },
+];
+
+export const seedCurrencies: Currency[] = [
+  { code: "USD", symbol: "$",   name: "US Dollar",           rateVsUsd: 1.0 },
+  { code: "EUR", symbol: "€",   name: "Euro",                rateVsUsd: 0.92 },
+  { code: "GBP", symbol: "£",   name: "British Pound",       rateVsUsd: 0.79 },
+  { code: "INR", symbol: "₹",   name: "Indian Rupee",        rateVsUsd: 83.5 },
+  { code: "JPY", symbol: "¥",   name: "Japanese Yen",        rateVsUsd: 155.0 },
+  { code: "AUD", symbol: "A$",  name: "Australian Dollar",   rateVsUsd: 1.55 },
+  { code: "CAD", symbol: "C$",  name: "Canadian Dollar",     rateVsUsd: 1.36 },
+  { code: "SGD", symbol: "S$",  name: "Singapore Dollar",    rateVsUsd: 1.35 },
+  { code: "AED", symbol: "د.إ", name: "UAE Dirham",          rateVsUsd: 3.67 },
+  { code: "BRL", symbol: "R$",  name: "Brazilian Real",      rateVsUsd: 4.95 },
+  { code: "MXN", symbol: "MX$", name: "Mexican Peso",        rateVsUsd: 17.1 },
+  { code: "CHF", symbol: "Fr",  name: "Swiss Franc",         rateVsUsd: 0.90 },
+  { code: "ZAR", symbol: "R",   name: "South African Rand",  rateVsUsd: 18.5 },
+  { code: "KRW", symbol: "₩",   name: "South Korean Won",    rateVsUsd: 1350.0 },
+];
+
+export const seedRegions: Region[] = [
+  { code: "US", name: "United States",         defaultCurrencyCode: "USD" },
+  { code: "GB", name: "United Kingdom",        defaultCurrencyCode: "GBP" },
+  { code: "IN", name: "India",                 defaultCurrencyCode: "INR" },
+  { code: "JP", name: "Japan",                 defaultCurrencyCode: "JPY" },
+  { code: "AU", name: "Australia",             defaultCurrencyCode: "AUD" },
+  { code: "CA", name: "Canada",                defaultCurrencyCode: "CAD" },
+  { code: "SG", name: "Singapore",             defaultCurrencyCode: "SGD" },
+  { code: "AE", name: "United Arab Emirates",  defaultCurrencyCode: "AED" },
+  { code: "BR", name: "Brazil",                defaultCurrencyCode: "BRL" },
+  { code: "MX", name: "Mexico",                defaultCurrencyCode: "MXN" },
+  { code: "CH", name: "Switzerland",           defaultCurrencyCode: "CHF" },
+  { code: "ZA", name: "South Africa",          defaultCurrencyCode: "ZAR" },
+  { code: "KR", name: "South Korea",           defaultCurrencyCode: "KRW" },
+  { code: "DE", name: "Germany",               defaultCurrencyCode: "EUR" },
+  { code: "FR", name: "France",                defaultCurrencyCode: "EUR" },
+  { code: "IT", name: "Italy",                 defaultCurrencyCode: "EUR" },
+  { code: "ES", name: "Spain",                 defaultCurrencyCode: "EUR" },
+  { code: "NL", name: "Netherlands",           defaultCurrencyCode: "EUR" },
+  { code: "BE", name: "Belgium",               defaultCurrencyCode: "EUR" },
+  { code: "AT", name: "Austria",               defaultCurrencyCode: "EUR" },
+  { code: "PT", name: "Portugal",              defaultCurrencyCode: "EUR" },
+  { code: "IE", name: "Ireland",               defaultCurrencyCode: "EUR" },
+  { code: "FI", name: "Finland",               defaultCurrencyCode: "EUR" },
+  { code: "GR", name: "Greece",                defaultCurrencyCode: "EUR" },
+  { code: "PL", name: "Poland",                defaultCurrencyCode: "EUR" },
+  { code: "SE", name: "Sweden",                defaultCurrencyCode: "EUR" },
+  { code: "DK", name: "Denmark",               defaultCurrencyCode: "EUR" },
+  { code: "NO", name: "Norway",                defaultCurrencyCode: "EUR" },
+  { code: "NZ", name: "New Zealand",           defaultCurrencyCode: "AUD" },
+  { code: "HK", name: "Hong Kong",             defaultCurrencyCode: "USD" },
 ];
 
 export const seedFeatureFlags: FeatureFlag[] = [

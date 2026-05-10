@@ -238,6 +238,22 @@ function SessionEditor({
             value={String(s.registeredCount)}
             onChange={(v) => set("registeredCount", Math.max(0, Number(v) || 0))}
           />
+          <F
+            label="List price USD (blank = free)"
+            type="number"
+            value={s.listPrice !== undefined ? String(s.listPrice) : ""}
+            onChange={(v) =>
+              set("listPrice", v.trim() === "" ? undefined : Math.max(0, Number(v) || 0))
+            }
+          />
+          <F
+            label="Sale price USD (blank = none)"
+            type="number"
+            value={s.salePrice !== undefined ? String(s.salePrice) : ""}
+            onChange={(v) =>
+              set("salePrice", v.trim() === "" ? undefined : Math.max(0, Number(v) || 0))
+            }
+          />
           <div>
             <span className="text-xs text-muted-foreground">Status</span>
             <select

@@ -37,4 +37,8 @@ export const qk = {
     all: () => ["features"] as const,
     list: () => ["features", "list"] as const,
   },
+  locale: {
+    currencies: () => ["locale", "currencies"] as const,
+    regions: () => ["locale", "regions"] as const,
+  },
 };

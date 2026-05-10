@@ -59,7 +59,7 @@ Uses `useAdminLiveSessions()` (calls `liveSessionsApi.listAll()`) so all session
 Full CRUD interface:
 - **Table** — lists all sessions with scheduled time, topic, registered/max count, status dropdown, and Edit/Delete actions.
 - **Status dropdown** — inline `<select>` per row changes `session.status` via `liveSessionsApi.setStatus()`. Options: Published, Draft, In Review, Archived. Only `"published"` sessions appear on the public `/live` page.
-- **Create / Edit modal** — `SessionEditor` inline form with fields: title, instructor, description, topic, scheduled datetime, duration, max attendees, join URL, status. New sessions default to `"published"`.
+- **Create / Edit modal** — `SessionEditor` inline form with fields: title, instructor, description, topic, scheduled datetime, duration, max attendees, join URL, optional list price (USD), optional sale price (USD), status. New sessions default to `"published"`.
 - **Delete** — uses `<ConfirmDialog>` for confirmation before calling `liveSessionsApi.delete()`.
 
 ### Content statuses (shared with courses)

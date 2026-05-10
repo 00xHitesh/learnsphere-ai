@@ -11,6 +11,10 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
+vi.mock("@/lib/query/locale", () => ({
+  usePriceFormatter: () => (amount: number) => amount === 0 ? "Free" : `$${amount}`,
+}));
+
 const base: Course = {
   id: "c-1",
   title: "Intro to Design",
@@ -19,7 +23,7 @@ const base: Course = {
   summary: "Learn design fundamentals fast.",
   category: "Design",
   level: "Beginner",
-  price: 0,
+  listPrice: 0,
   rating: 4.7,
   students: 1234,
   instructor: "Jane Doe",
@@ -60,7 +64,7 @@ describe("CourseCard", () => {
   });
 
   it("shows formatted price for paid courses", () => {
-    render(<CourseCard course={{ ...base, price: 39 }} />);
+    render(<CourseCard course={{ ...base, listPrice: 39 }} />);
     expect(screen.getByText("$39")).toBeInTheDocument();
   });
 

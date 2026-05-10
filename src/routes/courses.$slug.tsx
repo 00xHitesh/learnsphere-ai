@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-store";
+import { usePriceFormatter } from "@/lib/query/locale";
 import { useCourse, useCourses } from "@/lib/query/courses";
 import {
   useCourseProgress,
@@ -70,6 +71,7 @@ function CourseDetailPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
 
+  const format = usePriceFormatter();
   const { data: course, isLoading } = useCourse(slug);
   const { data: allCourses = [] } = useCourses();
   const { data: enrollment } = useEnrollment(currentUser?.id, course?.id ?? "");
@@ -121,7 +123,7 @@ function CourseDetailPage() {
       navigate({ to: "/login" });
       return;
     }
-    if (course.price === 0) {
+    if (course.listPrice === 0) {
       enrollMutation.mutate(
         { userId: currentUser.id, courseId: course.id },
         { onSuccess: () => toast.success("Enrolled. Happy learning.") },
@@ -195,9 +197,21 @@ function CourseDetailPage() {
           </div>
 
           {/* ── Sidebar card ── */}
-          <aside className="self-start rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
-            <div className="text-3xl font-medium text-foreground">
-              {course.price === 0 ? "Free" : `$${course.price}`}
+          <aside className="self-start rounded-2xl border border-border bg-card p-6 shadow-(--shadow-soft)">
+            <div className="space-y-1">
+              <div className="text-3xl font-medium text-foreground">
+                {format(course.salePrice ?? course.listPrice)}
+              </div>
+              {course.salePrice !== undefined && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground line-through">
+                    {format(course.listPrice)}
+                  </span>
+                  <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-semibold text-accent">
+                    {Math.round((1 - course.salePrice / course.listPrice) * 100)}% OFF
+                  </span>
+                </div>
+              )}
             </div>
 
             {enrolled ? (
@@ -220,9 +234,9 @@ function CourseDetailPage() {
                   className="w-full"
                   disabled={enrollMutation.isPending}
                 >
-                  {course.price === 0 ? "Enroll for free" : "Buy this course"}
+                  {course.listPrice === 0 ? "Enroll for free" : "Buy this course"}
                 </Button>
-                {course.price === 0 && (
+                {course.listPrice === 0 && (
                   <Button asChild variant="secondary" className="w-full">
                     <Link to="/learn/$slug" params={{ slug: course.slug }}>
                       Start learning

@@ -2,6 +2,19 @@ export type Role = "user" | "admin";
 
 export type ContentStatus = "published" | "draft" | "in_review" | "archived";
 
+export interface Currency {
+  code: string;              // ISO 4217 — "USD", "EUR", "INR" …
+  symbol: string;            // "$", "€", "₹" …
+  name: string;              // "US Dollar"
+  rateVsUsd: number;         // 1 USD = X of this currency
+}
+
+export interface Region {
+  code: string;              // ISO 3166-1 alpha-2 — "US", "IN", "GB" …
+  name: string;              // "United States"
+  defaultCurrencyCode: string; // ISO 4217
+}
+
 export interface User {
   id: string;
   name: string;
@@ -11,6 +24,8 @@ export interface User {
   interests: string[];
   createdAt: string;
   points: number;
+  regionCode: string;   // ISO 3166-1 alpha-2
+  currencyCode: string; // ISO 4217
 }
 
 export interface Lesson {
@@ -60,7 +75,8 @@ export interface Course {
   summary: string; // AI-generated style short summary
   category: string;
   level: "Beginner" | "Intermediate" | "Advanced";
-  price: number; // 0 = free
+  listPrice: number;    // full price in USD; 0 = free
+  salePrice?: number;   // discounted price in USD (optional)
   rating: number;
   students: number;
   instructor: string;
@@ -112,6 +128,8 @@ export interface LiveSession {
   courseId?: string;
   registeredCount: number;
   maxAttendees: number;
+  listPrice?: number;  // USD; undefined = free
+  salePrice?: number;  // discounted price in USD (optional)
   status: ContentStatus;
 }
 

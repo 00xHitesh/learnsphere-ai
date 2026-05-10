@@ -56,6 +56,28 @@ Key sections:
 
 ---
 
+---
+
+## Pricing
+
+### Dual-price model
+
+Every course has a `listPrice` (full price, USD) and an optional `salePrice` (discounted price, USD). Both are stored in USD and converted for display via the user's `currencyCode`.
+
+- `listPrice === 0` → free course; enroll directly without checkout.
+- `salePrice` set → sale badge (`% OFF`) shown on `<CourseCard>` and detail page; `salePrice` is used as the checkout base price.
+- Transaction amounts are stored in USD (`salePrice ?? listPrice`).
+
+### Formatting
+
+`usePriceFormatter()` (from `src/lib/query/locale.ts`) returns a function scoped to the current user's currency. It reads `currentUser.currencyCode` and the currencies list from React Query, then delegates to `formatPrice()` in `src/lib/utils/currency.ts`. Falls back to USD display until currencies load.
+
+### Promo codes
+
+Applied at checkout on top of any sale price. Available codes: `WELCOME` (10%), `SUMMER20` (20%), `STUDY50` (50%). Promo discounts are display-only — the stored transaction amount uses the pre-promo base price.
+
+---
+
 ## Seed Data
 
-Six courses are seeded across five categories (Design, Programming, Art, Business, Writing) with prices ranging from free to $129. All are `status: "published"`. See `src/lib/seed.ts`.
+Six courses seeded across five categories (Design, Programming, Art, Business, Writing). Three courses have active sale prices (TypeScript: $49→$29, Watercolor: $39→$24, React Architecture: $129→$89). All are `status: "published"`. See `src/lib/seed.ts`.

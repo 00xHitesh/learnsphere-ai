@@ -61,6 +61,8 @@ CREATE TABLE users (
   avatar_url    TEXT,
   bio           TEXT,
   points        INTEGER     NOT NULL DEFAULT 0,
+  region_code   TEXT        NOT NULL DEFAULT 'US',
+  currency_code TEXT        NOT NULL DEFAULT 'USD',
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -99,6 +101,28 @@ CREATE INDEX idx_prt_token   ON password_reset_tokens (token) WHERE used_at IS N
 CREATE INDEX idx_prt_user_id ON password_reset_tokens (user_id);
 
 -- =============================================================================
+-- REGIONS  (ISO 3166-1 alpha-2 territory codes + default currency)
+-- =============================================================================
+
+CREATE TABLE regions (
+  code                 TEXT PRIMARY KEY,   -- ISO 3166-1 alpha-2 e.g. "US"
+  name                 TEXT NOT NULL,
+  default_currency_code TEXT NOT NULL REFERENCES currencies (code)
+);
+
+-- =============================================================================
+-- CURRENCIES  (ISO 4217 codes with exchange rates relative to USD)
+-- =============================================================================
+
+CREATE TABLE currencies (
+  code         TEXT          PRIMARY KEY,  -- ISO 4217 e.g. "USD"
+  symbol       TEXT          NOT NULL,
+  name         TEXT          NOT NULL,
+  -- 1 USD = rate_vs_usd of this currency; prices stored in USD and converted on display
+  rate_vs_usd  NUMERIC(14,6) NOT NULL DEFAULT 1 CHECK (rate_vs_usd > 0)
+);
+
+-- =============================================================================
 -- TAGS  (normalised from Course.tags string[])
 -- =============================================================================
 
@@ -120,8 +144,11 @@ CREATE TABLE courses (
   summary        TEXT          NOT NULL,
   category       TEXT          NOT NULL,
   level          course_level  NOT NULL,
+  -- Prices stored in USD; converted for display via the currencies table
   -- 0 = free
-  price          NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (price >= 0),
+  list_price     NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (list_price >= 0),
+  -- NULL = no active sale
+  sale_price     NUMERIC(10,2)           CHECK (sale_price >= 0 AND sale_price < list_price),
   -- Denormalised aggregate; kept in sync by trigger or application layer
   rating         NUMERIC(3,2)  NOT NULL DEFAULT 0 CHECK (rating BETWEEN 0 AND 5),
   student_count  INTEGER       NOT NULL DEFAULT 0 CHECK (student_count >= 0),
@@ -146,7 +173,7 @@ CREATE INDEX idx_courses_slug       ON courses (slug);
 CREATE INDEX idx_courses_category   ON courses (category);
 CREATE INDEX idx_courses_level      ON courses (level);
 CREATE INDEX idx_courses_status     ON courses (status);
-CREATE INDEX idx_courses_price      ON courses (price);
+CREATE INDEX idx_courses_list_price ON courses (list_price);
 CREATE INDEX idx_courses_rating     ON courses (rating DESC);
 CREATE INDEX idx_courses_fts        ON courses USING GIN (fts_vector);
 -- Trigram index for partial-match UI search ("react" finds "The Architecture of React Apps")
@@ -446,7 +473,8 @@ SELECT
   c.slug,
   c.category,
   c.level,
-  c.price,
+  c.list_price,
+  c.sale_price,
   c.status,
   c.instructor,
   c.cover,
@@ -496,6 +524,56 @@ SELECT
 -- real bcrypt output before using against a live database.
 -- =============================================================================
 
+-- Currencies
+INSERT INTO currencies (code, symbol, name, rate_vs_usd) VALUES
+  ('USD', '$',  'US Dollar',          1),
+  ('EUR', '€',  'Euro',               0.92),
+  ('GBP', '£',  'British Pound',      0.79),
+  ('INR', '₹',  'Indian Rupee',       83.5),
+  ('JPY', '¥',  'Japanese Yen',       149.5),
+  ('AUD', 'A$', 'Australian Dollar',  1.52),
+  ('CAD', 'C$', 'Canadian Dollar',    1.36),
+  ('SGD', 'S$', 'Singapore Dollar',   1.34),
+  ('AED', 'د.إ','UAE Dirham',         3.67),
+  ('BRL', 'R$', 'Brazilian Real',     4.97),
+  ('MXN', '$',  'Mexican Peso',       17.2),
+  ('CHF', 'Fr', 'Swiss Franc',        0.9),
+  ('ZAR', 'R',  'South African Rand', 18.6),
+  ('KRW', '₩',  'South Korean Won',  1325);
+
+-- Regions
+INSERT INTO regions (code, name, default_currency_code) VALUES
+  ('US', 'United States',       'USD'),
+  ('GB', 'United Kingdom',      'GBP'),
+  ('IN', 'India',               'INR'),
+  ('AU', 'Australia',           'AUD'),
+  ('CA', 'Canada',              'CAD'),
+  ('DE', 'Germany',             'EUR'),
+  ('FR', 'France',              'EUR'),
+  ('IT', 'Italy',               'EUR'),
+  ('ES', 'Spain',               'EUR'),
+  ('NL', 'Netherlands',         'EUR'),
+  ('JP', 'Japan',               'JPY'),
+  ('SG', 'Singapore',           'SGD'),
+  ('AE', 'United Arab Emirates','AED'),
+  ('BR', 'Brazil',              'BRL'),
+  ('MX', 'Mexico',              'MXN'),
+  ('CH', 'Switzerland',         'CHF'),
+  ('ZA', 'South Africa',        'ZAR'),
+  ('KR', 'South Korea',         'KRW'),
+  ('NZ', 'New Zealand',         'AUD'),
+  ('SE', 'Sweden',              'EUR'),
+  ('NO', 'Norway',              'EUR'),
+  ('DK', 'Denmark',             'EUR'),
+  ('PL', 'Poland',              'EUR'),
+  ('PT', 'Portugal',            'EUR'),
+  ('BE', 'Belgium',             'EUR'),
+  ('AT', 'Austria',             'EUR'),
+  ('IE', 'Ireland',             'EUR'),
+  ('FI', 'Finland',             'EUR'),
+  ('HK', 'Hong Kong',           'USD'),
+  ('MY', 'Malaysia',            'USD');
+
 -- Users
 INSERT INTO users (id, name, email, password_hash, role) VALUES
   ('00000000-0000-0000-0000-000000000001',
@@ -536,7 +614,7 @@ INSERT INTO tags (id, name) VALUES
 
 -- Courses  (IDs mirror c-1…c-6 from seed.ts for easy cross-reference)
 INSERT INTO courses
-  (id, title, slug, description, summary, category, level, price, rating, student_count,
+  (id, title, slug, description, summary, category, level, list_price, sale_price, rating, student_count,
    instructor, instructor_bio, cover, status, created_at)
 VALUES
   ('cc000001-0000-0000-0000-000000000000',
@@ -544,7 +622,7 @@ VALUES
    'craft-of-modern-typography',
    'A studio course on letterforms, hierarchy, and the quiet decisions that make pages feel composed rather than decorated.',
    'Learn the principles behind elegant type systems, from kerning to scale, with practical studio exercises.',
-   'Design', 'Intermediate', 0, 4.8, 2412,
+   'Design', 'Intermediate', 0, NULL, 4.8, 2412,
    'Mira Hollander', 'Type designer, formerly at Commercial Type. Teaches at RISD.', 'Aa',
    'published', '2025-01-04 00:00:00+00'),
 
@@ -553,7 +631,7 @@ VALUES
    'foundations-of-typescript',
    'Move from JavaScript to confident TypeScript: types, generics, narrowing, and patterns that scale across teams.',
    'Master TypeScript fundamentals with practical patterns for real codebases.',
-   'Programming', 'Beginner', 49, 4.7, 8810,
+   'Programming', 'Beginner', 49, 29, 4.7, 8810,
    'Kenji Romero', 'Senior engineer, contributor to several open-source TS projects.', 'TS',
    'published', '2025-01-12 00:00:00+00'),
 
@@ -562,7 +640,7 @@ VALUES
    'watercolor-slow-practice',
    'An unhurried approach to watercolor — washes, restraint, and learning to leave the page alone.',
    'A meditative watercolor course focusing on restraint, washes, and quiet composition.',
-   'Art', 'Beginner', 39, 4.9, 1320,
+   'Art', 'Beginner', 39, 24, 4.9, 1320,
    'Eloise Marchetti', 'Painter and illustrator based in Florence.', '✦',
    'published', '2025-02-02 00:00:00+00'),
 
@@ -571,7 +649,7 @@ VALUES
    'product-strategy-for-builders',
    'How to choose what to build, how to know when you''re wrong, and how to write down a strategy people can actually follow.',
    'Practical product strategy frameworks for technical founders and PMs.',
-   'Business', 'Intermediate', 79, 4.6, 5230,
+   'Business', 'Intermediate', 79, NULL, 4.6, 5230,
    'Harper Liang', 'Former product lead at three early-stage startups.', '◐',
    'published', '2025-02-09 00:00:00+00'),
 
@@ -580,7 +658,7 @@ VALUES
    'architecture-of-react-apps',
    'Composition, data flow, server boundaries, and the small choices that determine whether a codebase ages well.',
    'Architectural principles for React applications that scale.',
-   'Programming', 'Advanced', 129, 4.9, 3104,
+   'Programming', 'Advanced', 129, 89, 4.9, 3104,
    'Sasha Vance', 'Staff engineer working on design systems.', '⚛',
    'published', '2025-02-20 00:00:00+00'),
 
@@ -589,7 +667,7 @@ VALUES
    'writing-for-the-web',
    'Plain prose, useful headlines, and how to make a page feel like one mind wrote it. For designers, founders, and engineers.',
    'Practical writing course for product, marketing, and documentation copy.',
-   'Writing', 'Beginner', 0, 4.7, 4112,
+   'Writing', 'Beginner', 0, NULL, 4.7, 4112,
    'Dale Okonkwo', 'Editor and writing coach.', '¶',
    'published', '2025-03-01 00:00:00+00');
 
@@ -783,6 +861,8 @@ CREATE TABLE live_sessions (
   course_id         UUID                    REFERENCES courses (id) ON DELETE SET NULL,
   registered_count  INTEGER        NOT NULL DEFAULT 0 CHECK (registered_count >= 0),
   max_attendees     INTEGER        NOT NULL CHECK (max_attendees > 0),
+  list_price        NUMERIC(10,2)           CHECK (list_price >= 0),
+  sale_price        NUMERIC(10,2)           CHECK (sale_price >= 0),
   status            content_status NOT NULL DEFAULT 'published',
   created_at        TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
   updated_at        TIMESTAMPTZ    NOT NULL DEFAULT NOW()

@@ -50,7 +50,7 @@ Demo admin credentials: `admin@lumen.io` / `admin123`
 
 - Lists all courses (all statuses visible to admin).
 - **Status dropdown** — inline `<select>` per row changes `course.status` via `coursesApi.setStatus()`. Options: Published, Draft, In Review, Archived. Only `"published"` courses appear in the public catalog.
-- **Edit** — opens an inline editor with all course fields. New courses default to `"draft"`.
+- **Edit** — opens an inline editor with all course fields. New courses default to `"draft"`. The editor exposes separate **List price (USD)** and **Sale price (USD)** fields; leaving sale price blank removes the discount.
 - **Delete** — requires confirmation via `<ConfirmDialog>`.
 
 ### Content statuses

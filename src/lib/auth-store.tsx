@@ -19,6 +19,7 @@ interface AuthContextValue {
   requestReset: (email: string) => Promise<string>;
   resetPassword: (token: string, password: string) => Promise<void>;
   updateInterests: (interests: string[]) => Promise<void>;
+  updateLocale: (regionCode: string, currencyCode: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -73,6 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async updateInterests(interests) {
       if (!currentUser) return;
       const updated = await authApi.updateInterests(currentUser.id, interests);
+      setCurrentUser(updated);
+    },
+    async updateLocale(regionCode, currencyCode) {
+      if (!currentUser) return;
+      const updated = await authApi.updateLocale(currentUser.id, regionCode, currencyCode);
       setCurrentUser(updated);
     },
   };

@@ -21,7 +21,7 @@ const mockCourse = (): Course => ({
   summary: "Short summary",
   category: "Design",
   level: "Beginner",
-  price: 0,
+  listPrice: 0,
   rating: 4.5,
   students: 100,
   instructor: "Tester",

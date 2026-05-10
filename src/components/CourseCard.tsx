@@ -5,6 +5,7 @@
  */
 import { Link } from "@tanstack/react-router";
 import type { Course } from "@/lib/types";
+import { usePriceFormatter } from "@/lib/query/locale";
 import { Star, Users } from "lucide-react";
 import { CourseIcon } from "./CourseIcon";
 
@@ -17,6 +18,13 @@ const palette = [
 
 export function CourseCard({ course, index = 0 }: { course: Course; index?: number }) {
   const tone = palette[index % palette.length];
+  const format = usePriceFormatter();
+  const effectivePrice = course.salePrice ?? course.listPrice;
+  const discountPct =
+    course.salePrice !== undefined
+      ? Math.round((1 - course.salePrice / course.listPrice) * 100)
+      : 0;
+
   return (
     <Link
       to="/courses/$slug"
@@ -44,9 +52,19 @@ export function CourseCard({ course, index = 0 }: { course: Course; index?: numb
               {course.students.toLocaleString()}
             </span>
           </div>
-          <span className="font-bold text-foreground">
-            {course.price === 0 ? "Free" : `$${course.price}`}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold text-foreground">{format(effectivePrice)}</span>
+            {discountPct > 0 && (
+              <>
+                <span className="text-xs text-muted-foreground line-through">
+                  {format(course.listPrice)}
+                </span>
+                <span className="rounded-full bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+                  {discountPct}% OFF
+                </span>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </Link>
