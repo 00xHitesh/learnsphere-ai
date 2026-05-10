@@ -1,11 +1,12 @@
 -- =============================================================================
--- LearnSphere AI — PostgreSQL 16+ Schema
+-- LearnSphere AI — PostgreSQL 18+ Schema
 -- Generated: 2026-04-27
 --
 -- IMPORTANT: Update this file whenever you change any API data model.
 --
 -- Design decisions:
---   • UUID primary keys everywhere (gen_random_uuid())
+--   • UUID v7 primary keys everywhere (gen_uuid_v7()) — time-ordered, concurrency-safe,
+--     client-generatable, sequential index inserts, no fragmentation
 --   • TIMESTAMPTZ for all datetimes — UTC always stored, display converted by client
 --   • Arrays from mock API normalised into join tables
 --   • GENERATED STORED tsvector column for full-text search on courses
@@ -15,7 +16,8 @@
 
 -- ─── Extensions ───────────────────────────────────────────────────────────────
 
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";   -- gen_random_uuid()
+-- gen_uuid_v7() is built-in from PostgreSQL 18; pgcrypto no longer required for UUIDs.
+-- Keep if you use pgcrypto functions elsewhere (e.g. crypt() for password hashing at DB level).
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";    -- trigram indexes for ILIKE search
 CREATE EXTENSION IF NOT EXISTS "unaccent";   -- accent-insensitive search
 
@@ -52,7 +54,7 @@ $$;
 -- =============================================================================
 
 CREATE TABLE users (
-  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            UUID        PRIMARY KEY DEFAULT gen_uuid_v7(),
   name          TEXT        NOT NULL,
   email         TEXT        NOT NULL UNIQUE,
   -- Store bcrypt hash only; plain-text password lives in mock seed.ts only
@@ -87,7 +89,7 @@ CREATE TABLE user_interests (
 -- =============================================================================
 
 CREATE TABLE password_reset_tokens (
-  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id         UUID        PRIMARY KEY DEFAULT gen_uuid_v7(),
   user_id    UUID        NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   -- Opaque token sent in the reset e-mail link
   token      TEXT        NOT NULL UNIQUE,
@@ -127,7 +129,7 @@ CREATE TABLE currencies (
 -- =============================================================================
 
 CREATE TABLE tags (
-  id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id   UUID PRIMARY KEY DEFAULT gen_uuid_v7(),
   name TEXT NOT NULL UNIQUE
 );
 
@@ -136,7 +138,7 @@ CREATE TABLE tags (
 -- =============================================================================
 
 CREATE TABLE courses (
-  id             UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  id             UUID          PRIMARY KEY DEFAULT gen_uuid_v7(),
   title          TEXT          NOT NULL,
   slug           TEXT          NOT NULL UNIQUE,
   description    TEXT          NOT NULL,
@@ -196,7 +198,7 @@ CREATE TABLE course_tags (
 -- =============================================================================
 
 CREATE TABLE lessons (
-  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          UUID        PRIMARY KEY DEFAULT gen_uuid_v7(),
   course_id   UUID        NOT NULL REFERENCES courses (id) ON DELETE CASCADE,
   title       TEXT        NOT NULL,
   -- Human-readable string e.g. "8:24"
@@ -212,7 +214,7 @@ CREATE INDEX idx_lessons_course_id ON lessons (course_id, sort_order);
 
 -- resources?: {label, url}[] normalised from Lesson
 CREATE TABLE lesson_resources (
-  id         UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
+  id         UUID     PRIMARY KEY DEFAULT gen_uuid_v7(),
   lesson_id  UUID     NOT NULL REFERENCES lessons (id) ON DELETE CASCADE,
   label      TEXT     NOT NULL,
   url        TEXT     NOT NULL,
@@ -227,7 +229,7 @@ CREATE INDEX idx_lesson_resources_lesson_id ON lesson_resources (lesson_id, sort
 -- =============================================================================
 
 CREATE TABLE reviews (
-  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            UUID        PRIMARY KEY DEFAULT gen_uuid_v7(),
   course_id     UUID        NOT NULL REFERENCES courses (id) ON DELETE CASCADE,
   -- Optional FK; NULL keeps historical reviews when a user is deleted
   user_id       UUID                    REFERENCES users   (id) ON DELETE SET NULL,
@@ -246,7 +248,7 @@ CREATE INDEX idx_reviews_user_id   ON reviews (user_id);
 -- =============================================================================
 
 CREATE TABLE quizzes (
-  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            UUID        PRIMARY KEY DEFAULT gen_uuid_v7(),
   course_id     UUID        NOT NULL REFERENCES courses (id) ON DELETE CASCADE,
   title         TEXT        NOT NULL,
   description   TEXT,
@@ -258,7 +260,7 @@ CREATE TABLE quizzes (
 CREATE INDEX idx_quizzes_course_id ON quizzes (course_id);
 
 CREATE TABLE quiz_questions (
-  id                  UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
+  id                  UUID     PRIMARY KEY DEFAULT gen_uuid_v7(),
   quiz_id             UUID     NOT NULL REFERENCES quizzes (id) ON DELETE CASCADE,
   prompt              TEXT     NOT NULL,
   -- One element = single-select; multiple elements = multi-select (checkboxes)
@@ -272,7 +274,7 @@ CREATE INDEX idx_quiz_questions_quiz_id ON quiz_questions (quiz_id, sort_order);
 
 -- Each option row for a question; option_key = "a" | "b" | "c" | "d"
 CREATE TABLE quiz_options (
-  id          UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          UUID     PRIMARY KEY DEFAULT gen_uuid_v7(),
   question_id UUID     NOT NULL REFERENCES quiz_questions (id) ON DELETE CASCADE,
   option_key  TEXT     NOT NULL,
   text        TEXT     NOT NULL,
@@ -287,7 +289,7 @@ CREATE INDEX idx_quiz_options_question_id ON quiz_options (question_id, sort_ord
 -- =============================================================================
 
 CREATE TABLE quiz_attempts (
-  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id           UUID        PRIMARY KEY DEFAULT gen_uuid_v7(),
   user_id      UUID        NOT NULL REFERENCES users   (id) ON DELETE CASCADE,
   quiz_id      UUID        NOT NULL REFERENCES quizzes (id) ON DELETE CASCADE,
   -- Score as percentage 0–100
@@ -306,7 +308,7 @@ CREATE INDEX idx_quiz_attempts_user_quiz ON quiz_attempts (user_id, quiz_id, att
 -- =============================================================================
 
 CREATE TABLE enrollments (
-  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id              UUID        PRIMARY KEY DEFAULT gen_uuid_v7(),
   user_id         UUID        NOT NULL REFERENCES users   (id) ON DELETE CASCADE,
   course_id       UUID        NOT NULL REFERENCES courses (id) ON DELETE CASCADE,
   -- Quiz IDs the student has passed; certificate gated on this being complete
@@ -343,7 +345,7 @@ CREATE INDEX idx_elp_lesson_id     ON enrollment_lesson_progress (lesson_id);
 -- =============================================================================
 
 CREATE TABLE transactions (
-  id         UUID               PRIMARY KEY DEFAULT gen_random_uuid(),
+  id         UUID               PRIMARY KEY DEFAULT gen_uuid_v7(),
   user_id    UUID                           REFERENCES users   (id) ON DELETE SET NULL,
   course_id  UUID                           REFERENCES courses (id) ON DELETE SET NULL,
   amount     NUMERIC(10,2)      NOT NULL CHECK (amount >= 0),
@@ -376,7 +378,7 @@ CREATE INDEX idx_wishlists_user_id ON wishlists (user_id);
 -- =============================================================================
 
 CREATE TABLE chat_sessions (
-  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id         UUID        PRIMARY KEY DEFAULT gen_uuid_v7(),
   user_id    UUID        NOT NULL REFERENCES users   (id) ON DELETE CASCADE,
   course_id  UUID                    REFERENCES courses (id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -392,7 +394,7 @@ CREATE TRIGGER trg_chat_sessions_updated_at
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE TABLE chat_messages (
-  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id         UUID        PRIMARY KEY DEFAULT gen_uuid_v7(),
   session_id UUID        NOT NULL REFERENCES chat_sessions (id) ON DELETE CASCADE,
   role       chat_role   NOT NULL,
   content    TEXT        NOT NULL,
@@ -408,7 +410,7 @@ CREATE INDEX idx_chat_messages_session_created ON chat_messages (session_id, cre
 -- =============================================================================
 
 CREATE TABLE certificates (
-  id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id             UUID        PRIMARY KEY DEFAULT gen_uuid_v7(),
   user_id        UUID        NOT NULL REFERENCES users       (id) ON DELETE CASCADE,
   course_id      UUID        NOT NULL REFERENCES courses     (id) ON DELETE CASCADE,
   enrollment_id  UUID        NOT NULL REFERENCES enrollments (id) ON DELETE CASCADE UNIQUE,
@@ -424,7 +426,7 @@ CREATE INDEX idx_certificates_course_id ON certificates (course_id);
 -- =============================================================================
 
 CREATE TABLE notifications (
-  id         UUID              PRIMARY KEY DEFAULT gen_random_uuid(),
+  id         UUID              PRIMARY KEY DEFAULT gen_uuid_v7(),
   user_id    UUID              NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   type       notification_type NOT NULL,
   title      TEXT              NOT NULL,
@@ -781,10 +783,10 @@ DECLARE
 BEGIN
   FOR i IN 1..6 LOOP
     qid := quiz_ids[i];
-    q1 := gen_random_uuid();
-    q2 := gen_random_uuid();
-    q3 := gen_random_uuid();
-    q4 := gen_random_uuid();
+    q1 := gen_uuid_v7();
+    q2 := gen_uuid_v7();
+    q3 := gen_uuid_v7();
+    q4 := gen_uuid_v7();
 
     INSERT INTO quiz_questions (id, quiz_id, prompt, correct_option_keys, is_multi_select, explanation, sort_order) VALUES
       (q1, qid, format('Which best describes a key idea from "%s"?', topics[i]),
@@ -824,7 +826,7 @@ $$;
 CREATE TYPE discount_type AS ENUM ('percent', 'fixed');
 
 CREATE TABLE promo_codes (
-  id             UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  id             UUID          PRIMARY KEY DEFAULT gen_uuid_v7(),
   code           TEXT          NOT NULL UNIQUE,
   discount_type  discount_type NOT NULL DEFAULT 'percent',
   discount_value NUMERIC(10,2) NOT NULL CHECK (discount_value > 0),
@@ -849,7 +851,7 @@ INSERT INTO promo_codes (code, discount_type, discount_value) VALUES
 CREATE TYPE session_status AS ENUM ('upcoming', 'live', 'ended');
 
 CREATE TABLE live_sessions (
-  id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id                UUID        PRIMARY KEY DEFAULT gen_uuid_v7(),
   title             TEXT        NOT NULL,
   instructor        TEXT        NOT NULL,
   description       TEXT        NOT NULL DEFAULT '',
@@ -894,7 +896,7 @@ FROM live_sessions ls;
 -- =============================================================================
 
 CREATE TABLE feature_flags (
-  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          UUID        PRIMARY KEY DEFAULT gen_uuid_v7(),
   name        TEXT        NOT NULL UNIQUE,
   label       TEXT        NOT NULL,
   description TEXT        NOT NULL DEFAULT '',
