@@ -1,13 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useAdminCourses, useDeleteCourse, useToggleCourseApproval, useUpsertCourse } from "@/lib/query/courses";
+import { useAdminCourses, useDeleteCourse, useSetCourseStatus, useUpsertCourse } from "@/lib/query/courses";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ChevronDown, ChevronUp, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import type { Course, Lesson, Quiz, QuizQuestion } from "@/lib/types";
+import type { ContentStatus, Course, Lesson, Quiz, QuizQuestion } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/courses")({ component: AdminCourses });
+
+const STATUS_LABELS: Record<ContentStatus, string> = {
+  published: "Published",
+  draft: "Draft",
+  in_review: "In Review",
+  archived: "Archived",
+};
+
+const STATUS_COLORS: Record<ContentStatus, string> = {
+  published: "bg-primary/10 text-primary",
+  draft: "bg-secondary text-muted-foreground",
+  in_review: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  archived: "bg-destructive/10 text-destructive",
+};
 
 const slugify = (s: string) =>
   s
@@ -34,7 +48,7 @@ const blank = (): Course => ({
   quizzes: [],
   reviews: [],
   tags: [],
-  approved: true,
+  status: "draft" as const,
   createdAt: new Date().toISOString().slice(0, 10),
 });
 
@@ -42,7 +56,7 @@ function AdminCourses() {
   const { data: courses = [] } = useAdminCourses();
   const upsertMutation = useUpsertCourse();
   const deleteMutation = useDeleteCourse();
-  const toggleApprovalMutation = useToggleCourseApproval();
+  const setStatusMutation = useSetCourseStatus();
   const [editing, setEditing] = useState<Course | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; title: string } | null>(null);
 
@@ -61,7 +75,7 @@ function AdminCourses() {
               <th className="px-4 py-2">Title</th>
               <th className="px-4 py-2">Category</th>
               <th className="px-4 py-2">Price</th>
-              <th className="px-4 py-2">Approved</th>
+              <th className="px-4 py-2">Status</th>
               <th className="px-4 py-2"></th>
             </tr>
           </thead>
@@ -72,12 +86,17 @@ function AdminCourses() {
                 <td className="px-4 py-2 text-muted-foreground">{c.category}</td>
                 <td className="px-4 py-2">{c.price === 0 ? "Free" : `$${c.price}`}</td>
                 <td className="px-4 py-2">
-                  <button
-                    onClick={() => toggleApprovalMutation.mutate(c.id)}
-                    className={`rounded-full px-2 py-0.5 text-xs ${c.approved ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}
+                  <select
+                    value={c.status}
+                    onChange={(e) =>
+                      setStatusMutation.mutate({ id: c.id, status: e.target.value as ContentStatus })
+                    }
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium border-0 outline-none cursor-pointer ${STATUS_COLORS[c.status]}`}
                   >
-                    {c.approved ? "Approved" : "Pending"}
-                  </button>
+                    {(Object.keys(STATUS_LABELS) as ContentStatus[]).map((s) => (
+                      <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                    ))}
+                  </select>
                 </td>
                 <td className="px-4 py-2">
                   <div className="flex justify-end gap-2">

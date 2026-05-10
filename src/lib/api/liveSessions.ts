@@ -1,9 +1,11 @@
 import { mockRequest } from "./client";
 import { db } from "./db";
-import type { LiveSession } from "../types";
+import type { ContentStatus, LiveSession } from "../types";
 
 export const liveSessionsApi = {
-  list: () => mockRequest(() => db.liveSessions.map((s) => ({ ...s }))),
+  list: () => mockRequest(() => db.liveSessions.filter((s) => s.status === "published").map((s) => ({ ...s }))),
+
+  listAll: () => mockRequest(() => db.liveSessions.map((s) => ({ ...s }))),
 
   upsert: (session: LiveSession) =>
     mockRequest(() => {
@@ -19,5 +21,12 @@ export const liveSessionsApi = {
   delete: (id: string) =>
     mockRequest(() => {
       db.liveSessions = db.liveSessions.filter((s) => s.id !== id);
+    }),
+
+  setStatus: (id: string, status: ContentStatus) =>
+    mockRequest(() => {
+      const session = db.liveSessions.find((s) => s.id === id);
+      if (session) session.status = status;
+      return session ? { ...session } : null;
     }),
 };

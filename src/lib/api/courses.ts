@@ -1,15 +1,15 @@
 import { db } from "./db";
 import { mockRequest } from "./client";
-import type { Course } from "../types";
+import type { ContentStatus, Course } from "../types";
 
 export const coursesApi = {
-  list: () => mockRequest(() => db.courses.filter((c) => c.approved).map((c) => ({ ...c }))),
+  list: () => mockRequest(() => db.courses.filter((c) => c.status === "published").map((c) => ({ ...c }))),
 
   listAll: () => mockRequest(() => db.courses.map((c) => ({ ...c }))),
 
   getBySlug: (slug: string) =>
     mockRequest(() => {
-      const c = db.courses.find((c) => c.slug === slug && c.approved);
+      const c = db.courses.find((c) => c.slug === slug && c.status === "published");
       return c ? { ...c } : null;
     }),
 
@@ -27,10 +27,10 @@ export const coursesApi = {
       db.enrollments = db.enrollments.filter((e) => e.courseId !== id);
     }),
 
-  toggleApproval: (id: string) =>
+  setStatus: (id: string, status: ContentStatus) =>
     mockRequest(() => {
       const course = db.courses.find((c) => c.id === id);
-      if (course) course.approved = !course.approved;
+      if (course) course.status = status;
       return course ? { ...course } : null;
     }),
 };

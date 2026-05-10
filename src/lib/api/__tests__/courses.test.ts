@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { resetDb } from "@/test/helpers";
 import { db } from "../db";
-import type { Course } from "@/lib/types";
+import type { ContentStatus, Course } from "@/lib/types";
 
 vi.mock("../client", () => ({
   mockRequest: async <T>(fn: () => T) => fn(),
@@ -31,15 +31,15 @@ const mockCourse = (): Course => ({
   reviews: [],
   quizzes: [],
   tags: ["test"],
-  approved: true,
+  status: "published" as ContentStatus,
   createdAt: "2025-01-01",
 });
 
 describe("coursesApi.list", () => {
-  it("returns only approved courses", async () => {
-    db.courses[0].approved = false;
+  it("returns only published courses", async () => {
+    db.courses[0].status = "draft";
     const courses = await coursesApi.list();
-    expect(courses.every((c) => c.approved)).toBe(true);
+    expect(courses.every((c) => c.status === "published")).toBe(true);
     expect(courses.find((c) => c.id === db.courses[0].id)).toBeUndefined();
   });
 
@@ -52,17 +52,17 @@ describe("coursesApi.list", () => {
 });
 
 describe("coursesApi.listAll", () => {
-  it("returns all courses regardless of approval status", async () => {
-    db.courses[0].approved = false;
+  it("returns all courses regardless of status", async () => {
+    db.courses[0].status = "draft";
     const all = await coursesApi.listAll();
     expect(all.length).toBe(db.courses.length);
-    expect(all.find((c) => !c.approved)).toBeTruthy();
+    expect(all.find((c) => c.status !== "published")).toBeTruthy();
   });
 });
 
 describe("coursesApi.getBySlug", () => {
-  it("returns the matching approved course", async () => {
-    const first = db.courses.find((c) => c.approved)!;
+  it("returns the matching published course", async () => {
+    const first = db.courses.find((c) => c.status === "published")!;
     const course = await coursesApi.getBySlug(first.slug);
     expect(course?.id).toBe(first.id);
   });
@@ -72,9 +72,9 @@ describe("coursesApi.getBySlug", () => {
     expect(course).toBeNull();
   });
 
-  it("returns null for an unapproved course slug", async () => {
+  it("returns null for a non-published course slug", async () => {
     const c = db.courses[0];
-    c.approved = false;
+    c.status = "draft";
     const course = await coursesApi.getBySlug(c.slug);
     expect(course).toBeNull();
   });
@@ -116,21 +116,31 @@ describe("coursesApi.delete", () => {
   });
 });
 
-describe("coursesApi.toggleApproval", () => {
-  it("toggles approved from true to false", async () => {
-    const c = db.courses.find((x) => x.approved)!;
-    await coursesApi.toggleApproval(c.id);
-    expect(db.courses.find((x) => x.id === c.id)?.approved).toBe(false);
+describe("coursesApi.setStatus", () => {
+  it("sets status to draft", async () => {
+    const c = db.courses.find((x) => x.status === "published")!;
+    await coursesApi.setStatus(c.id, "draft");
+    expect(db.courses.find((x) => x.id === c.id)?.status).toBe("draft");
   });
 
-  it("toggles approved from false to true", async () => {
-    db.courses[0].approved = false;
-    await coursesApi.toggleApproval(db.courses[0].id);
-    expect(db.courses[0].approved).toBe(true);
+  it("sets status to in_review", async () => {
+    await coursesApi.setStatus(db.courses[0].id, "in_review");
+    expect(db.courses[0].status).toBe("in_review");
+  });
+
+  it("sets status to published", async () => {
+    db.courses[0].status = "draft";
+    await coursesApi.setStatus(db.courses[0].id, "published");
+    expect(db.courses[0].status).toBe("published");
+  });
+
+  it("sets status to archived", async () => {
+    await coursesApi.setStatus(db.courses[0].id, "archived");
+    expect(db.courses[0].status).toBe("archived");
   });
 
   it("returns null for unknown id", async () => {
-    const result = await coursesApi.toggleApproval("unknown-id");
+    const result = await coursesApi.setStatus("unknown-id", "published");
     expect(result).toBeNull();
   });
 });

@@ -29,7 +29,7 @@ const base: Course = {
   reviews: [],
   quizzes: [],
   tags: [],
-  approved: true,
+  status: "published" as const,
   createdAt: "2025-01-01",
 };
 

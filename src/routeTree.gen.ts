@@ -13,6 +13,7 @@ import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LiveRouteImport } from './routes/live'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CoursesRouteImport } from './routes/courses'
@@ -28,6 +29,8 @@ import { Route as CoursesSlugRouteImport } from './routes/courses.$slug'
 import { Route as CheckoutSlugRouteImport } from './routes/checkout.$slug'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTransactionsRouteImport } from './routes/admin.transactions'
+import { Route as AdminLiveSessionsRouteImport } from './routes/admin.live-sessions'
+import { Route as AdminFeaturesRouteImport } from './routes/admin.features'
 import { Route as AdminCoursesRouteImport } from './routes/admin.courses'
 
 const WishlistRoute = WishlistRouteImport.update({
@@ -48,6 +51,11 @@ const RegisterRoute = RegisterRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LiveRoute = LiveRouteImport.update({
+  id: '/live',
+  path: '/live',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -125,6 +133,16 @@ const AdminTransactionsRoute = AdminTransactionsRouteImport.update({
   path: '/transactions',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminLiveSessionsRoute = AdminLiveSessionsRouteImport.update({
+  id: '/live-sessions',
+  path: '/live-sessions',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFeaturesRoute = AdminFeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCoursesRoute = AdminCoursesRouteImport.update({
   id: '/courses',
   path: '/courses',
@@ -141,11 +159,14 @@ export interface FileRoutesByFullPath {
   '/courses': typeof CoursesRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/live': typeof LiveRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/wishlist': typeof WishlistRoute
   '/admin/courses': typeof AdminCoursesRoute
+  '/admin/features': typeof AdminFeaturesRoute
+  '/admin/live-sessions': typeof AdminLiveSessionsRoute
   '/admin/transactions': typeof AdminTransactionsRoute
   '/admin/users': typeof AdminUsersRoute
   '/checkout/$slug': typeof CheckoutSlugRoute
@@ -162,11 +183,14 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/live': typeof LiveRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/wishlist': typeof WishlistRoute
   '/admin/courses': typeof AdminCoursesRoute
+  '/admin/features': typeof AdminFeaturesRoute
+  '/admin/live-sessions': typeof AdminLiveSessionsRoute
   '/admin/transactions': typeof AdminTransactionsRoute
   '/admin/users': typeof AdminUsersRoute
   '/checkout/$slug': typeof CheckoutSlugRoute
@@ -185,11 +209,14 @@ export interface FileRoutesById {
   '/courses': typeof CoursesRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/live': typeof LiveRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/wishlist': typeof WishlistRoute
   '/admin/courses': typeof AdminCoursesRoute
+  '/admin/features': typeof AdminFeaturesRoute
+  '/admin/live-sessions': typeof AdminLiveSessionsRoute
   '/admin/transactions': typeof AdminTransactionsRoute
   '/admin/users': typeof AdminUsersRoute
   '/checkout/$slug': typeof CheckoutSlugRoute
@@ -209,11 +236,14 @@ export interface FileRouteTypes {
     | '/courses'
     | '/dashboard'
     | '/forgot-password'
+    | '/live'
     | '/login'
     | '/register'
     | '/reset-password'
     | '/wishlist'
     | '/admin/courses'
+    | '/admin/features'
+    | '/admin/live-sessions'
     | '/admin/transactions'
     | '/admin/users'
     | '/checkout/$slug'
@@ -230,11 +260,14 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/forgot-password'
+    | '/live'
     | '/login'
     | '/register'
     | '/reset-password'
     | '/wishlist'
     | '/admin/courses'
+    | '/admin/features'
+    | '/admin/live-sessions'
     | '/admin/transactions'
     | '/admin/users'
     | '/checkout/$slug'
@@ -252,11 +285,14 @@ export interface FileRouteTypes {
     | '/courses'
     | '/dashboard'
     | '/forgot-password'
+    | '/live'
     | '/login'
     | '/register'
     | '/reset-password'
     | '/wishlist'
     | '/admin/courses'
+    | '/admin/features'
+    | '/admin/live-sessions'
     | '/admin/transactions'
     | '/admin/users'
     | '/checkout/$slug'
@@ -275,6 +311,7 @@ export interface RootRouteChildren {
   CoursesRoute: typeof CoursesRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LiveRoute: typeof LiveRoute
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -311,6 +348,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/live': {
+      id: '/live'
+      path: '/live'
+      fullPath: '/live'
+      preLoaderRoute: typeof LiveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -418,6 +462,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminTransactionsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/live-sessions': {
+      id: '/admin/live-sessions'
+      path: '/live-sessions'
+      fullPath: '/admin/live-sessions'
+      preLoaderRoute: typeof AdminLiveSessionsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/features': {
+      id: '/admin/features'
+      path: '/features'
+      fullPath: '/admin/features'
+      preLoaderRoute: typeof AdminFeaturesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/courses': {
       id: '/admin/courses'
       path: '/courses'
@@ -430,12 +488,16 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminCoursesRoute: typeof AdminCoursesRoute
+  AdminFeaturesRoute: typeof AdminFeaturesRoute
+  AdminLiveSessionsRoute: typeof AdminLiveSessionsRoute
   AdminTransactionsRoute: typeof AdminTransactionsRoute
   AdminUsersRoute: typeof AdminUsersRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCoursesRoute: AdminCoursesRoute,
+  AdminFeaturesRoute: AdminFeaturesRoute,
+  AdminLiveSessionsRoute: AdminLiveSessionsRoute,
   AdminTransactionsRoute: AdminTransactionsRoute,
   AdminUsersRoute: AdminUsersRoute,
 }
@@ -465,6 +527,7 @@ const rootRouteChildren: RootRouteChildren = {
   CoursesRoute: CoursesRouteWithChildren,
   DashboardRoute: DashboardRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  LiveRoute: LiveRoute,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,

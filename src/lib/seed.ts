@@ -119,7 +119,7 @@ export const seedCourses: Course[] = [
     ],
     tags: ["typography", "design", "layout"],
     quizzes: [sampleQuiz("craft-of-modern-typography", "Typography essentials")],
-    approved: true,
+    status: "published" as const,
     createdAt: "2025-01-04",
   },
   {
@@ -151,7 +151,7 @@ export const seedCourses: Course[] = [
     ],
     tags: ["typescript", "programming", "javascript"],
     quizzes: [sampleQuiz("foundations-of-typescript", "TypeScript foundations")],
-    approved: true,
+    status: "published" as const,
     createdAt: "2025-01-12",
   },
   {
@@ -180,7 +180,7 @@ export const seedCourses: Course[] = [
     reviews: [],
     tags: ["art", "watercolor", "painting"],
     quizzes: [sampleQuiz("watercolor-slow-practice", "Watercolor practice")],
-    approved: true,
+    status: "published" as const,
     createdAt: "2025-02-02",
   },
   {
@@ -211,7 +211,7 @@ export const seedCourses: Course[] = [
     ],
     tags: ["product", "strategy", "business"],
     quizzes: [sampleQuiz("product-strategy-for-builders", "Product strategy")],
-    approved: true,
+    status: "published" as const,
     createdAt: "2025-02-09",
   },
   {
@@ -244,7 +244,7 @@ export const seedCourses: Course[] = [
     ],
     tags: ["react", "architecture", "frontend"],
     quizzes: [sampleQuiz("architecture-of-react-apps", "React architecture")],
-    approved: true,
+    status: "published" as const,
     createdAt: "2025-02-20",
   },
   {
@@ -272,7 +272,7 @@ export const seedCourses: Course[] = [
     reviews: [],
     tags: ["writing", "content"],
     quizzes: [sampleQuiz("writing-for-the-web", "Writing for the web")],
-    approved: true,
+    status: "published" as const,
     createdAt: "2025-03-01",
   },
 ];
@@ -293,6 +293,7 @@ export const seedLiveSessions: LiveSession[] = [
     joinUrl: "https://meet.example.com/open-hours",
     registeredCount: 312,
     maxAttendees: 500,
+    status: "published" as const,
   },
   {
     id: "ls-1",
@@ -306,6 +307,7 @@ export const seedLiveSessions: LiveSession[] = [
     joinUrl: "https://meet.example.com/design-masterclass",
     registeredCount: 127,
     maxAttendees: 200,
+    status: "published" as const,
   },
   {
     id: "ls-2",
@@ -319,6 +321,7 @@ export const seedLiveSessions: LiveSession[] = [
     joinUrl: "https://meet.example.com/python-office-hours",
     registeredCount: 84,
     maxAttendees: 150,
+    status: "published" as const,
   },
   {
     id: "ls-3",
@@ -332,6 +335,7 @@ export const seedLiveSessions: LiveSession[] = [
     joinUrl: "https://meet.example.com/strategy-workshop",
     registeredCount: 56,
     maxAttendees: 100,
+    status: "published" as const,
   },
   {
     id: "ls-4",
@@ -345,6 +349,7 @@ export const seedLiveSessions: LiveSession[] = [
     joinUrl: "https://meet.example.com/watercolor-demo",
     registeredCount: 203,
     maxAttendees: 300,
+    status: "published" as const,
   },
 ];
 

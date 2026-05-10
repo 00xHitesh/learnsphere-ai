@@ -48,10 +48,19 @@ Demo admin credentials: `admin@lumen.io` / `admin123`
 
 `src/routes/admin.courses.tsx`
 
-- Lists all courses (including unapproved).
-- **Approve toggle** — flips `course.approved`.
-- **Edit** — opens an inline editor with all course fields.
+- Lists all courses (all statuses visible to admin).
+- **Status dropdown** — inline `<select>` per row changes `course.status` via `coursesApi.setStatus()`. Options: Published, Draft, In Review, Archived. Only `"published"` courses appear in the public catalog.
+- **Edit** — opens an inline editor with all course fields. New courses default to `"draft"`.
 - **Delete** — requires confirmation via `<ConfirmDialog>`.
+
+### Content statuses
+
+| Value | Label | Visible to students |
+|---|---|---|
+| `published` | Published | Yes |
+| `draft` | Draft | No |
+| `in_review` | In Review | No |
+| `archived` | Archived | No |
 
 ---
 

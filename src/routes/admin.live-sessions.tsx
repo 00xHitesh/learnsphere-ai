@@ -1,11 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useLiveSessions, useUpsertLiveSession, useDeleteLiveSession } from "@/lib/query/liveSessions";
+import { useAdminLiveSessions, useDeleteLiveSession, useSetLiveSessionStatus, useUpsertLiveSession } from "@/lib/query/liveSessions";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Pencil, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import type { LiveSession } from "@/lib/types";
+import type { ContentStatus, LiveSession } from "@/lib/types";
+
+const STATUS_LABELS: Record<ContentStatus, string> = {
+  published: "Published",
+  draft: "Draft",
+  in_review: "In Review",
+  archived: "Archived",
+};
+
+const STATUS_COLORS: Record<ContentStatus, string> = {
+  published: "bg-primary/10 text-primary",
+  draft: "bg-secondary text-muted-foreground",
+  in_review: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  archived: "bg-destructive/10 text-destructive",
+};
 
 export const Route = createFileRoute("/admin/live-sessions")({ component: AdminLiveSessions });
 
@@ -20,12 +34,14 @@ const blankSession = (): LiveSession => ({
   joinUrl: "",
   registeredCount: 0,
   maxAttendees: 100,
+  status: "published" as const,
 });
 
 function AdminLiveSessions() {
-  const { data: sessions = [] } = useLiveSessions();
+  const { data: sessions = [] } = useAdminLiveSessions();
   const upsertMutation = useUpsertLiveSession();
   const deleteMutation = useDeleteLiveSession();
+  const setStatusMutation = useSetLiveSessionStatus();
   const [editing, setEditing] = useState<LiveSession | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; title: string } | null>(null);
 
@@ -47,6 +63,7 @@ function AdminLiveSessions() {
               <th className="px-4 py-3">Scheduled</th>
               <th className="px-4 py-3">Duration</th>
               <th className="px-4 py-3">Spots</th>
+              <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -68,6 +85,19 @@ function AdminLiveSessions() {
                   {s.registeredCount} / {s.maxAttendees}
                 </td>
                 <td className="px-4 py-3">
+                  <select
+                    value={s.status}
+                    onChange={(e) =>
+                      setStatusMutation.mutate({ id: s.id, status: e.target.value as ContentStatus })
+                    }
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium border-0 outline-none cursor-pointer ${STATUS_COLORS[s.status]}`}
+                  >
+                    {(Object.keys(STATUS_LABELS) as ContentStatus[]).map((st) => (
+                      <option key={st} value={st}>{STATUS_LABELS[st]}</option>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={() => setEditing(s)}
@@ -87,7 +117,7 @@ function AdminLiveSessions() {
             ))}
             {sessions.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
+                <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
                   No sessions yet. Create the first one.
                 </td>
               </tr>
@@ -208,6 +238,18 @@ function SessionEditor({
             value={String(s.registeredCount)}
             onChange={(v) => set("registeredCount", Math.max(0, Number(v) || 0))}
           />
+          <div>
+            <span className="text-xs text-muted-foreground">Status</span>
+            <select
+              value={s.status}
+              onChange={(e) => set("status", e.target.value as ContentStatus)}
+              className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            >
+              {(Object.keys(STATUS_LABELS) as ContentStatus[]).map((st) => (
+                <option key={st} value={st}>{STATUS_LABELS[st]}</option>
+              ))}
+            </select>
+          </div>
           <div className="sm:col-span-2">
             <label className="block">
               <span className="text-xs text-muted-foreground">Description</span>

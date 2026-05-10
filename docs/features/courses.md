@@ -13,7 +13,7 @@
 
 ## Course Catalog (`/courses`)
 
-- Displays all **approved** courses as a grid of `<CourseCard>` components.
+- Displays all **published** courses as a grid of `<CourseCard>` components.
 - Filters: category tabs + free/paid toggle + text search (title, summary, instructor, tags).
 - All filtering is client-side — no network call on each keystroke.
 - If the `courses` feature flag is disabled, the page shows a "coming soon" message.
@@ -58,4 +58,4 @@ Key sections:
 
 ## Seed Data
 
-Six courses are seeded across five categories (Design, Programming, Art, Business, Writing) with prices ranging from free to $129. All are `approved: true`. See `src/lib/seed.ts`.
+Six courses are seeded across five categories (Design, Programming, Art, Business, Writing) with prices ranging from free to $129. All are `status: "published"`. See `src/lib/seed.ts`.

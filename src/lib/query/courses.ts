@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { coursesApi } from "../api";
 import { qk } from "./keys";
-import type { Course } from "../types";
+import type { ContentStatus, Course } from "../types";
 
 export function useCourses() {
   return useQuery({ queryKey: qk.courses.list(), queryFn: coursesApi.list });
@@ -39,10 +39,11 @@ export function useDeleteCourse() {
   });
 }
 
-export function useToggleCourseApproval() {
+export function useSetCourseStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => coursesApi.toggleApproval(id),
+    mutationFn: ({ id, status }: { id: string; status: ContentStatus }) =>
+      coursesApi.setStatus(id, status),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.courses.all() });
     },

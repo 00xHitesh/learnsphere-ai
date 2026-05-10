@@ -25,6 +25,7 @@ CREATE TYPE user_role          AS ENUM ('user', 'admin');
 CREATE TYPE course_level       AS ENUM ('Beginner', 'Intermediate', 'Advanced');
 CREATE TYPE transaction_status AS ENUM ('success', 'failed');
 CREATE TYPE chat_role          AS ENUM ('user', 'assistant');
+CREATE TYPE content_status     AS ENUM ('published', 'draft', 'in_review', 'archived');
 CREATE TYPE notification_type  AS ENUM (
   'enrollment',
   'completion',
@@ -128,7 +129,7 @@ CREATE TABLE courses (
   instructor_bio TEXT          NOT NULL,
   -- Emoji or short text used as cover artwork
   cover          TEXT          NOT NULL,
-  approved       BOOLEAN       NOT NULL DEFAULT FALSE,
+  status         content_status NOT NULL DEFAULT 'draft',
   created_at     TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
   updated_at     TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
 
@@ -144,7 +145,7 @@ CREATE TABLE courses (
 CREATE INDEX idx_courses_slug       ON courses (slug);
 CREATE INDEX idx_courses_category   ON courses (category);
 CREATE INDEX idx_courses_level      ON courses (level);
-CREATE INDEX idx_courses_approved   ON courses (approved);
+CREATE INDEX idx_courses_status     ON courses (status);
 CREATE INDEX idx_courses_price      ON courses (price);
 CREATE INDEX idx_courses_rating     ON courses (rating DESC);
 CREATE INDEX idx_courses_fts        ON courses USING GIN (fts_vector);
@@ -446,7 +447,7 @@ SELECT
   c.category,
   c.level,
   c.price,
-  c.approved,
+  c.status,
   c.instructor,
   c.cover,
   c.created_at,
@@ -484,7 +485,7 @@ GROUP BY e.id;
 CREATE OR REPLACE VIEW v_admin_overview AS
 SELECT
   (SELECT COUNT(*)             FROM users        WHERE role = 'user')   AS total_users,
-  (SELECT COUNT(*)             FROM courses      WHERE approved)         AS total_courses,
+  (SELECT COUNT(*)             FROM courses      WHERE status = 'published') AS total_courses,
   (SELECT COUNT(*)             FROM enrollments)                         AS total_enrollments,
   (SELECT COALESCE(SUM(amount), 0)
                                FROM transactions WHERE status = 'success') AS revenue;
@@ -536,7 +537,7 @@ INSERT INTO tags (id, name) VALUES
 -- Courses  (IDs mirror c-1…c-6 from seed.ts for easy cross-reference)
 INSERT INTO courses
   (id, title, slug, description, summary, category, level, price, rating, student_count,
-   instructor, instructor_bio, cover, approved, created_at)
+   instructor, instructor_bio, cover, status, created_at)
 VALUES
   ('cc000001-0000-0000-0000-000000000000',
    'The Craft of Modern Typography',
@@ -545,7 +546,7 @@ VALUES
    'Learn the principles behind elegant type systems, from kerning to scale, with practical studio exercises.',
    'Design', 'Intermediate', 0, 4.8, 2412,
    'Mira Hollander', 'Type designer, formerly at Commercial Type. Teaches at RISD.', 'Aa',
-   TRUE, '2025-01-04 00:00:00+00'),
+   'published', '2025-01-04 00:00:00+00'),
 
   ('cc000002-0000-0000-0000-000000000000',
    'Foundations of TypeScript',
@@ -554,7 +555,7 @@ VALUES
    'Master TypeScript fundamentals with practical patterns for real codebases.',
    'Programming', 'Beginner', 49, 4.7, 8810,
    'Kenji Romero', 'Senior engineer, contributor to several open-source TS projects.', 'TS',
-   TRUE, '2025-01-12 00:00:00+00'),
+   'published', '2025-01-12 00:00:00+00'),
 
   ('cc000003-0000-0000-0000-000000000000',
    'Watercolor: A Slow Practice',
@@ -563,7 +564,7 @@ VALUES
    'A meditative watercolor course focusing on restraint, washes, and quiet composition.',
    'Art', 'Beginner', 39, 4.9, 1320,
    'Eloise Marchetti', 'Painter and illustrator based in Florence.', '✦',
-   TRUE, '2025-02-02 00:00:00+00'),
+   'published', '2025-02-02 00:00:00+00'),
 
   ('cc000004-0000-0000-0000-000000000000',
    'Product Strategy for Builders',
@@ -572,7 +573,7 @@ VALUES
    'Practical product strategy frameworks for technical founders and PMs.',
    'Business', 'Intermediate', 79, 4.6, 5230,
    'Harper Liang', 'Former product lead at three early-stage startups.', '◐',
-   TRUE, '2025-02-09 00:00:00+00'),
+   'published', '2025-02-09 00:00:00+00'),
 
   ('cc000005-0000-0000-0000-000000000000',
    'The Architecture of React Apps',
@@ -581,7 +582,7 @@ VALUES
    'Architectural principles for React applications that scale.',
    'Programming', 'Advanced', 129, 4.9, 3104,
    'Sasha Vance', 'Staff engineer working on design systems.', '⚛',
-   TRUE, '2025-02-20 00:00:00+00'),
+   'published', '2025-02-20 00:00:00+00'),
 
   ('cc000006-0000-0000-0000-000000000000',
    'Writing for the Web',
@@ -590,7 +591,7 @@ VALUES
    'Practical writing course for product, marketing, and documentation copy.',
    'Writing', 'Beginner', 0, 4.7, 4112,
    'Dale Okonkwo', 'Editor and writing coach.', '¶',
-   TRUE, '2025-03-01 00:00:00+00');
+   'published', '2025-03-01 00:00:00+00');
 
 -- Course tags
 INSERT INTO course_tags (course_id, tag_id) VALUES
@@ -780,13 +781,15 @@ CREATE TABLE live_sessions (
   join_url          TEXT        NOT NULL,
   -- Optional link to a course
   course_id         UUID                    REFERENCES courses (id) ON DELETE SET NULL,
-  registered_count  INTEGER     NOT NULL DEFAULT 0 CHECK (registered_count >= 0),
-  max_attendees     INTEGER     NOT NULL CHECK (max_attendees > 0),
-  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  registered_count  INTEGER        NOT NULL DEFAULT 0 CHECK (registered_count >= 0),
+  max_attendees     INTEGER        NOT NULL CHECK (max_attendees > 0),
+  status            content_status NOT NULL DEFAULT 'published',
+  created_at        TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ    NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_live_sessions_scheduled_at ON live_sessions (scheduled_at);
+CREATE INDEX idx_live_sessions_status       ON live_sessions (status);
 CREATE INDEX idx_live_sessions_course_id    ON live_sessions (course_id);
 
 CREATE TRIGGER trg_live_sessions_updated_at

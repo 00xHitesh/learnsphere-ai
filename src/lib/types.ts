@@ -1,5 +1,7 @@
 export type Role = "user" | "admin";
 
+export type ContentStatus = "published" | "draft" | "in_review" | "archived";
+
 export interface User {
   id: string;
   name: string;
@@ -68,7 +70,7 @@ export interface Course {
   quizzes: Quiz[];
   reviews: Review[];
   tags: string[];
-  approved: boolean;
+  status: ContentStatus;
   createdAt: string;
 }
 
@@ -110,6 +112,7 @@ export interface LiveSession {
   courseId?: string;
   registeredCount: number;
   maxAttendees: number;
+  status: ContentStatus;
 }
 
 export interface FeatureFlag {

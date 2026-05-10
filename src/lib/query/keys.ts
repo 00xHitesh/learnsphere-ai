@@ -31,6 +31,7 @@ export const qk = {
   liveSessions: {
     all: () => ["live-sessions"] as const,
     list: () => ["live-sessions", "list"] as const,
+    adminList: () => ["live-sessions", "admin-list"] as const,
   },
   features: {
     all: () => ["features"] as const,
