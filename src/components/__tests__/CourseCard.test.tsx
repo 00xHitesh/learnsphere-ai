@@ -12,6 +12,8 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@/lib/query/locale", () => ({
+  useCurrencies: () => ({ data: [] }),
+  useRegions: () => ({ data: [] }),
   usePriceFormatter: () => (amount: number) => amount === 0 ? "Free" : `$${amount}`,
 }));
 
