@@ -4,6 +4,7 @@ import { apiOk, apiErr } from "@/test/helpers";
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
+const { BASE_URL } = await import("../client");
 const { enrollmentsApi } = await import("../enrollments");
 
 const enrollmentResp = {
@@ -25,7 +26,7 @@ describe("enrollmentsApi.listByUser", () => {
     expect(result).toHaveLength(1);
     expect(result[0].courseId).toBe("c-1");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/enrollments",
+      `${BASE_URL}/enrollments`,
       expect.any(Object),
     );
   });
@@ -37,7 +38,7 @@ describe("enrollmentsApi.get", () => {
     const result = await enrollmentsApi.get("u-demo", "c-1");
     expect(result?.id).toBe("e-1");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/enrollments/c-1",
+      `${BASE_URL}/enrollments/c-1`,
       expect.any(Object),
     );
   });
@@ -55,7 +56,7 @@ describe("enrollmentsApi.enroll", () => {
     const result = await enrollmentsApi.enroll("u-demo", "c-1");
     expect(result.courseId).toBe("c-1");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/enrollments",
+      `${BASE_URL}/enrollments`,
       expect.objectContaining({ method: "POST", body: JSON.stringify({ courseId: "c-1" }) }),
     );
   });
@@ -68,7 +69,7 @@ describe("enrollmentsApi.toggleLessonComplete", () => {
     const result = await enrollmentsApi.toggleLessonComplete("u-demo", "c-1", "l-1");
     expect(result?.completedLessonIds).toContain("l-1");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/enrollments/c-1/lessons/l-1/toggle",
+      `${BASE_URL}/enrollments/c-1/lessons/l-1/toggle`,
       expect.objectContaining({ method: "PATCH" }),
     );
   });
@@ -86,7 +87,7 @@ describe("enrollmentsApi.recordTimeSpent", () => {
     const result = await enrollmentsApi.recordTimeSpent("u-demo", "c-1", 120);
     expect(result?.timeSpentSeconds).toBe(120);
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/enrollments/c-1/time",
+      `${BASE_URL}/enrollments/c-1/time`,
       expect.objectContaining({ method: "PATCH", body: JSON.stringify({ seconds: 120 }) }),
     );
   });
@@ -104,7 +105,7 @@ describe("enrollmentsApi.markQuizPassed", () => {
     const result = await enrollmentsApi.markQuizPassed("u-demo", "c-1", "q-1");
     expect(result?.passedQuizIds).toContain("q-1");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/enrollments/c-1/quiz/q-1/pass",
+      `${BASE_URL}/enrollments/c-1/quiz/q-1/pass`,
       expect.objectContaining({ method: "PATCH" }),
     );
   });

@@ -4,6 +4,7 @@ import { apiOk } from "@/test/helpers";
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
+const { BASE_URL } = await import("../client");
 const { wishlistApi } = await import("../wishlist");
 
 const wishlistItemResp = { userId: "u-demo", courseId: "c-1", addedAt: "2025-05-01" };
@@ -17,7 +18,7 @@ describe("wishlistApi.listByUser", () => {
     expect(result).toHaveLength(1);
     expect(result[0].courseId).toBe("c-1");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/wishlist",
+      `${BASE_URL}/wishlist`,
       expect.any(Object),
     );
   });
@@ -29,7 +30,7 @@ describe("wishlistApi.toggle", () => {
     const result = await wishlistApi.toggle("u-demo", "c-1");
     expect(result).toBe(true);
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/wishlist/toggle",
+      `${BASE_URL}/wishlist/toggle`,
       expect.objectContaining({ method: "POST", body: JSON.stringify({ courseId: "c-1" }) }),
     );
   });

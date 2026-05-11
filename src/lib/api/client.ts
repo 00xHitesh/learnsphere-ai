@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:8080/api/v1";
+export const BASE_URL = "http://localhost:8080/api/v1";
 const TOKEN_KEY = "lumen-tokens-v1";
 
 interface Tokens {

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useAdminCourses, useDeleteCourse, useSetCourseStatus, useUpsertCourse } from "@/lib/query/courses";
+import { useAdminCourses, useDeleteCourse, useSetCourseStatus, useSaveCourseWithContent } from "@/lib/query/courses";
+import { coursesApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ChevronDown, ChevronUp, Pencil, Plus, Trash2, X } from "lucide-react";
@@ -54,11 +55,22 @@ const blank = (): Course => ({
 
 function AdminCourses() {
   const { data: courses = [] } = useAdminCourses();
-  const upsertMutation = useUpsertCourse();
+  const saveMutation = useSaveCourseWithContent();
   const deleteMutation = useDeleteCourse();
   const setStatusMutation = useSetCourseStatus();
   const [editing, setEditing] = useState<Course | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; title: string } | null>(null);
+
+  async function openEdit(course: Course) {
+    setLoadingEdit(true);
+    try {
+      const full = await coursesApi.getBySlug(course.slug);
+      setEditing(full ?? course);
+    } finally {
+      setLoadingEdit(false);
+    }
+  }
 
   return (
     <div>
@@ -107,8 +119,9 @@ function AdminCourses() {
                 <td className="px-4 py-2">
                   <div className="flex justify-end gap-2">
                     <button
-                      onClick={() => setEditing(c)}
-                      className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      onClick={() => openEdit(c)}
+                      disabled={loadingEdit}
+                      className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50"
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
@@ -128,9 +141,10 @@ function AdminCourses() {
       {editing && (
         <Editor
           course={editing}
+          saving={saveMutation.isPending}
           onClose={() => setEditing(null)}
           onSave={(c) => {
-            upsertMutation.mutate(
+            saveMutation.mutate(
               { ...c, slug: c.slug || slugify(c.title) },
               { onSuccess: () => { toast.success("Course saved"); setEditing(null); } },
             );
@@ -157,10 +171,12 @@ function AdminCourses() {
 
 function Editor({
   course,
+  saving,
   onClose,
   onSave,
 }: {
   course: Course;
+  saving?: boolean;
   onClose: () => void;
   onSave: (c: Course) => void;
 }) {
@@ -269,8 +285,8 @@ function Editor({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={() => onSave(c)} disabled={!c.title}>
-            Save course
+          <Button onClick={() => onSave(c)} disabled={!c.title || saving}>
+            {saving ? "Saving…" : "Save course"}
           </Button>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { apiOk } from "@/test/helpers";
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
+const { BASE_URL } = await import("../client");
 const { statsApi } = await import("../stats");
 
 const courseResp = {
@@ -48,7 +49,7 @@ describe("statsApi.overview", () => {
     fetchMock.mockResolvedValueOnce(apiOk(overviewResp));
     await statsApi.overview();
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/stats/overview",
+      `${BASE_URL}/stats/overview`,
       expect.any(Object),
     );
   });
@@ -60,7 +61,7 @@ describe("statsApi.revenueByPeriod", () => {
     const result = await statsApi.revenueByPeriod("daily");
     expect(result).toEqual(periodPoints);
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/stats/revenue?period=daily",
+      `${BASE_URL}/stats/revenue?period=daily`,
       expect.any(Object),
     );
   });
@@ -80,7 +81,7 @@ describe("statsApi.activeUsersByPeriod", () => {
     fetchMock.mockResolvedValueOnce(apiOk(periodPoints));
     await statsApi.activeUsersByPeriod("monthly");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/stats/active-users?period=monthly",
+      `${BASE_URL}/stats/active-users?period=monthly`,
       expect.any(Object),
     );
   });

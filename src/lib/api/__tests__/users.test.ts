@@ -4,6 +4,7 @@ import { apiOk } from "@/test/helpers";
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
+const { BASE_URL } = await import("../client");
 const { usersApi } = await import("../users");
 
 const userResp = {
@@ -27,7 +28,7 @@ describe("usersApi.list", () => {
     expect(result).toHaveLength(2);
     expect(result[0].name).toBe("Alice");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/users",
+      `${BASE_URL}/users`,
       expect.any(Object),
     );
   });
@@ -45,7 +46,7 @@ describe("usersApi.delete", () => {
     fetchMock.mockResolvedValueOnce(apiOk(null));
     await usersApi.delete("u-1");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/users/u-1",
+      `${BASE_URL}/users/u-1`,
       expect.objectContaining({ method: "DELETE" }),
     );
   });

@@ -4,6 +4,7 @@ import { apiOk, apiErr } from "@/test/helpers";
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
+const { BASE_URL } = await import("../client");
 const { transactionsApi } = await import("../transactions");
 
 const txResp = {
@@ -24,7 +25,7 @@ describe("transactionsApi.listByUser", () => {
     expect(result).toHaveLength(1);
     expect(result[0].date).toBe("2025-05-01T10:00:00Z");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/transactions",
+      `${BASE_URL}/transactions`,
       expect.any(Object),
     );
   });
@@ -35,7 +36,7 @@ describe("transactionsApi.listAll", () => {
     fetchMock.mockResolvedValueOnce(apiOk([txResp]));
     await transactionsApi.listAll();
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/transactions/all",
+      `${BASE_URL}/transactions/all`,
       expect.any(Object),
     );
   });
@@ -50,7 +51,7 @@ describe("transactionsApi.purchase", () => {
     expect(result.amount).toBe(29);
     expect(result.status).toBe("success");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/transactions",
+      `${BASE_URL}/transactions`,
       expect.objectContaining({ method: "POST", body: JSON.stringify({ courseId: "c-1" }) }),
     );
   });

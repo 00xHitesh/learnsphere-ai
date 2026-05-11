@@ -1,6 +1,9 @@
 import { apiFetch } from "./client";
 import type { ContentStatus, Course, Lesson, Quiz, QuizOption, QuizQuestion, Review } from "../types";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUUID = (id: string) => UUID_RE.test(id);
+
 interface LessonResponse {
   id: string;
   title: string;
@@ -186,5 +189,57 @@ export const coursesApi = {
     } catch {
       return null;
     }
+  },
+
+  upsertLesson: async (courseId: string, lesson: Lesson, sortOrder: number): Promise<Lesson> => {
+    const res = await apiFetch<LessonResponse>(`/courses/${courseId}/lessons`, {
+      method: "PUT",
+      body: JSON.stringify({
+        ...(isUUID(lesson.id) && { id: lesson.id }),
+        title: lesson.title,
+        duration: lesson.duration,
+        videoUrl: lesson.videoUrl,
+        isPreview: lesson.preview ?? false,
+        description: lesson.description,
+        sortOrder,
+      }),
+    });
+    return mapLesson(res);
+  },
+
+  deleteLesson: async (courseId: string, lessonId: string): Promise<void> => {
+    await apiFetch<void>(`/courses/${courseId}/lessons/${lessonId}`, { method: "DELETE" });
+  },
+
+  upsertQuiz: async (courseId: string, quiz: Quiz): Promise<Quiz> => {
+    const res = await apiFetch<QuizResponse>(`/courses/${courseId}/quiz`, {
+      method: "PUT",
+      body: JSON.stringify({
+        ...(isUUID(quiz.id) && { id: quiz.id }),
+        title: quiz.title,
+        description: quiz.description,
+        passingScore: quiz.passingScore,
+        questions: quiz.questions.map((q) => {
+          const optionKeys = ["A", "B", "C", "D", "E"];
+          const idToKey = Object.fromEntries(q.options.map((o, i) => [o.id, optionKeys[i] ?? String(i)]));
+          return {
+            ...(isUUID(q.id) && { id: q.id }),
+            prompt: q.prompt,
+            options: q.options.map((o, i) => ({
+              ...(isUUID(o.id) && { id: o.id }),
+              text: o.text,
+              optionKey: optionKeys[i] ?? String(i),
+            })),
+            correctOptionKeys: q.correctOptionIds.map((id) => idToKey[id] ?? id),
+            explanation: q.explanation,
+          };
+        }),
+      }),
+    });
+    return mapQuiz(res);
+  },
+
+  deleteQuiz: async (courseId: string): Promise<void> => {
+    await apiFetch<void>(`/courses/${courseId}/quiz`, { method: "DELETE" });
   },
 };

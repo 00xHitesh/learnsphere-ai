@@ -5,6 +5,7 @@ import type { ChatMessage } from "@/lib/types";
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
+const { BASE_URL } = await import("../client");
 const { chatApi } = await import("../chat");
 
 const msgResp = { id: "m-1", role: "user", content: "Hello", createdAt: "2025-05-01T10:00:00Z" };
@@ -23,7 +24,7 @@ describe("chatApi.list", () => {
     expect(result[0].content).toBe("Hello");
     expect(result[0].date).toBe("2025-05-01T10:00:00Z");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/chat",
+      `${BASE_URL}/chat`,
       expect.any(Object),
     );
   });
@@ -36,7 +37,7 @@ describe("chatApi.append", () => {
     expect(result.content).toBe("Hello");
     expect(result.role).toBe("user");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/chat/messages",
+      `${BASE_URL}/chat/messages`,
       expect.objectContaining({ method: "POST", body: JSON.stringify({ content: "Hello", role: "user" }) }),
     );
   });
@@ -54,7 +55,7 @@ describe("chatApi.reset", () => {
     fetchMock.mockResolvedValueOnce(apiOk(null));
     await chatApi.reset("u-demo");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/chat",
+      `${BASE_URL}/chat`,
       expect.objectContaining({ method: "DELETE" }),
     );
   });

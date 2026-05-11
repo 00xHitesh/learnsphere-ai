@@ -5,6 +5,7 @@ import type { ContentStatus } from "@/lib/types";
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
+const { BASE_URL } = await import("../client");
 const { liveSessionsApi } = await import("../liveSessions");
 
 const sessionResp = {
@@ -33,7 +34,7 @@ describe("liveSessionsApi.list", () => {
     expect(result).toHaveLength(1);
     expect(result[0].title).toBe("React Deep Dive");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/live-sessions",
+      `${BASE_URL}/live-sessions`,
       expect.any(Object),
     );
   });
@@ -44,7 +45,7 @@ describe("liveSessionsApi.listAll", () => {
     fetchMock.mockResolvedValueOnce(apiOk([sessionResp]));
     await liveSessionsApi.listAll();
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/live-sessions/all",
+      `${BASE_URL}/live-sessions/all`,
       expect.any(Object),
     );
   });
@@ -62,7 +63,7 @@ describe("liveSessionsApi.upsert", () => {
     const result = await liveSessionsApi.upsert(session);
     expect(result.title).toBe("React Deep Dive");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/live-sessions",
+      `${BASE_URL}/live-sessions`,
       expect.objectContaining({ method: "PUT" }),
     );
   });
@@ -74,7 +75,7 @@ describe("liveSessionsApi.setStatus", () => {
     const result = await liveSessionsApi.setStatus("ls-1", "draft");
     expect(result?.status).toBe("draft");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/live-sessions/ls-1/status",
+      `${BASE_URL}/live-sessions/ls-1/status`,
       expect.objectContaining({ method: "PATCH", body: JSON.stringify({ status: "draft" }) }),
     );
   });
@@ -90,7 +91,7 @@ describe("liveSessionsApi.delete", () => {
     fetchMock.mockResolvedValueOnce(apiOk(null));
     await liveSessionsApi.delete("ls-1");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/live-sessions/ls-1",
+      `${BASE_URL}/live-sessions/ls-1`,
       expect.objectContaining({ method: "DELETE" }),
     );
   });

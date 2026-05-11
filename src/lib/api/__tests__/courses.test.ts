@@ -5,6 +5,7 @@ import type { ContentStatus } from "@/lib/types";
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
+const { BASE_URL } = await import("../client");
 const { coursesApi } = await import("../courses");
 
 const lessonResp = { id: "l-1", title: "Intro", duration: "5:00", videoUrl: "https://yt.com/v1", isPreview: true, description: "Intro lesson", courseId: "c-1", sortOrder: 1 };
@@ -96,7 +97,7 @@ describe("coursesApi.getBySlug", () => {
     fetchMock.mockResolvedValueOnce(apiOk(courseResp));
     await coursesApi.getBySlug("react-basics");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/courses/react-basics",
+      `${BASE_URL}/courses/react-basics`,
       expect.any(Object),
     );
   });
@@ -114,7 +115,7 @@ describe("coursesApi.upsert", () => {
     });
     expect(course.students).toBe(500);
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/courses",
+      `${BASE_URL}/courses`,
       expect.objectContaining({ method: "PUT" }),
     );
   });
@@ -125,7 +126,7 @@ describe("coursesApi.delete", () => {
     fetchMock.mockResolvedValueOnce(apiOk(null));
     await coursesApi.delete("c-1");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/courses/c-1",
+      `${BASE_URL}/courses/c-1`,
       expect.objectContaining({ method: "DELETE" }),
     );
   });
@@ -137,7 +138,7 @@ describe("coursesApi.setStatus", () => {
     const course = await coursesApi.setStatus("c-1", "draft");
     expect(course?.status).toBe("draft");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/courses/c-1/status",
+      `${BASE_URL}/courses/c-1/status`,
       expect.objectContaining({ method: "PATCH", body: JSON.stringify({ status: "draft" }) }),
     );
   });

@@ -4,6 +4,7 @@ import { apiOk } from "@/test/helpers";
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
+const { BASE_URL } = await import("../client");
 const { featuresApi } = await import("../features");
 
 const flagResp = { id: "f-1", name: "live_sessions", label: "Live Sessions", description: "Enable live sessions", enabled: true };
@@ -18,7 +19,7 @@ describe("featuresApi.list", () => {
     expect(result[0].name).toBe("live_sessions");
     expect(result[0].enabled).toBe(true);
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/features",
+      `${BASE_URL}/features`,
       expect.any(Object),
     );
   });
@@ -31,7 +32,7 @@ describe("featuresApi.toggle", () => {
     expect(result.name).toBe("live_sessions");
     expect(result.enabled).toBe(false);
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/features/live_sessions/toggle",
+      `${BASE_URL}/features/live_sessions/toggle`,
       expect.objectContaining({ method: "PATCH" }),
     );
   });

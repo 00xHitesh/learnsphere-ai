@@ -4,7 +4,7 @@ import { apiOk, apiErr } from "@/test/helpers";
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
-const { clearTokens } = await import("../client");
+const { clearTokens, BASE_URL } = await import("../client");
 const { authApi } = await import("../auth");
 
 const userResp = {
@@ -40,7 +40,7 @@ describe("authApi.login", () => {
     fetchMock.mockResolvedValueOnce(apiOk({ user: userResp, tokens }));
     await authApi.login("alice@test.com", "password");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/auth/login",
+      `${BASE_URL}/auth/login`,
       expect.objectContaining({ method: "POST", body: JSON.stringify({ email: "alice@test.com", password: "password" }) }),
     );
   });
@@ -63,7 +63,7 @@ describe("authApi.register", () => {
     fetchMock.mockResolvedValueOnce(apiOk({ user: userResp, tokens }));
     await authApi.register("Alice", "alice@test.com", "password");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/auth/register",
+      `${BASE_URL}/auth/register`,
       expect.objectContaining({ method: "POST", body: JSON.stringify({ name: "Alice", email: "alice@test.com", password: "password" }) }),
     );
   });
@@ -98,7 +98,7 @@ describe("authApi.updateInterests", () => {
     const user = await authApi.updateInterests("u-1", ["Design", "AI"]);
     expect(user.interests).toEqual(["Design", "AI"]);
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/auth/interests",
+      `${BASE_URL}/auth/interests`,
       expect.objectContaining({ method: "PUT", body: JSON.stringify({ interests: ["Design", "AI"] }) }),
     );
   });
@@ -127,7 +127,7 @@ describe("authApi.resetPassword", () => {
     fetchMock.mockResolvedValueOnce(apiOk(null));
     await authApi.resetPassword("abc123", "newpass");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/v1/auth/reset-password",
+      `${BASE_URL}/auth/reset-password`,
       expect.objectContaining({ method: "POST", body: JSON.stringify({ token: "abc123", password: "newpass" }) }),
     );
   });
