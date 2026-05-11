@@ -1,163 +1,116 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { resetDb } from "@/test/helpers";
-import { db } from "../db";
+import { apiOk, apiErr } from "@/test/helpers";
 
-vi.mock("../client", () => ({
-  mockRequest: async <T>(fn: () => T) => fn(),
-}));
+const fetchMock = vi.fn();
+vi.stubGlobal("fetch", fetchMock);
 
 const { enrollmentsApi } = await import("../enrollments");
 
-beforeEach(() => {
-  resetDb();
-});
+const enrollmentResp = {
+  id: "e-1",
+  userId: "u-demo",
+  courseId: "c-1",
+  completedLessonIds: [],
+  passedQuizIds: [],
+  enrolledAt: "2025-01-01",
+  timeSpentSeconds: 0,
+};
 
-const USER_ID = "u-demo";
-const COURSE_ID = () => db.courses[0].id;
+beforeEach(() => fetchMock.mockReset());
 
 describe("enrollmentsApi.listByUser", () => {
-  it("returns empty array when user has no enrollments", async () => {
-    const result = await enrollmentsApi.listByUser(USER_ID);
-    expect(result).toEqual([]);
-  });
-
-  it("returns only the enrollments for the specified user", async () => {
-    db.enrollments.push(
-      { id: "e-1", userId: USER_ID, courseId: COURSE_ID(), completedLessonIds: [], passedQuizIds: [], enrolledAt: "", timeSpentSeconds: 0 },
-      { id: "e-2", userId: "u-other", courseId: COURSE_ID(), completedLessonIds: [], passedQuizIds: [], enrolledAt: "", timeSpentSeconds: 0 },
+  it("calls GET /enrollments", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk([enrollmentResp]));
+    const result = await enrollmentsApi.listByUser("u-demo");
+    expect(result).toHaveLength(1);
+    expect(result[0].courseId).toBe("c-1");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/enrollments",
+      expect.any(Object),
     );
-    const result = await enrollmentsApi.listByUser(USER_ID);
-    expect(result.length).toBe(1);
-    expect(result[0].userId).toBe(USER_ID);
   });
 });
 
 describe("enrollmentsApi.get", () => {
-  it("returns the enrollment when found", async () => {
-    db.enrollments.push({
-      id: "e-1",
-      userId: USER_ID,
-      courseId: COURSE_ID(),
-      completedLessonIds: [],
-      passedQuizIds: [],
-      enrolledAt: "",
-      timeSpentSeconds: 0,
-    });
-    const result = await enrollmentsApi.get(USER_ID, COURSE_ID());
+  it("calls GET /enrollments/{courseId}", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk(enrollmentResp));
+    const result = await enrollmentsApi.get("u-demo", "c-1");
     expect(result?.id).toBe("e-1");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/enrollments/c-1",
+      expect.any(Object),
+    );
   });
 
-  it("returns null when not enrolled", async () => {
-    const result = await enrollmentsApi.get(USER_ID, COURSE_ID());
+  it("returns null on error", async () => {
+    fetchMock.mockResolvedValueOnce(apiErr("Not enrolled"));
+    const result = await enrollmentsApi.get("u-demo", "c-ghost");
     expect(result).toBeNull();
   });
 });
 
 describe("enrollmentsApi.enroll", () => {
-  it("creates a new enrollment and returns it", async () => {
-    const result = await enrollmentsApi.enroll(USER_ID, COURSE_ID());
-    expect(result.userId).toBe(USER_ID);
-    expect(result.courseId).toBe(COURSE_ID());
-    expect(result.completedLessonIds).toEqual([]);
-    expect(db.enrollments.length).toBe(1);
-  });
-
-  it("is idempotent — returns existing enrollment without creating a duplicate", async () => {
-    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
-    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
-    expect(db.enrollments.length).toBe(1);
+  it("calls POST /enrollments with courseId body", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk(enrollmentResp));
+    const result = await enrollmentsApi.enroll("u-demo", "c-1");
+    expect(result.courseId).toBe("c-1");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/enrollments",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ courseId: "c-1" }) }),
+    );
   });
 });
 
 describe("enrollmentsApi.toggleLessonComplete", () => {
-  it("marks a lesson complete", async () => {
-    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
-    const courseId = COURSE_ID();
-    const lessonId = db.courses[0].lessons[0]?.id ?? "l-0";
-    const result = await enrollmentsApi.toggleLessonComplete(USER_ID, courseId, lessonId);
-    expect(result?.completedLessonIds).toContain(lessonId);
+  it("calls PATCH /enrollments/{courseId}/lessons/{lessonId}/toggle", async () => {
+    const updated = { ...enrollmentResp, completedLessonIds: ["l-1"] };
+    fetchMock.mockResolvedValueOnce(apiOk(updated));
+    const result = await enrollmentsApi.toggleLessonComplete("u-demo", "c-1", "l-1");
+    expect(result?.completedLessonIds).toContain("l-1");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/enrollments/c-1/lessons/l-1/toggle",
+      expect.objectContaining({ method: "PATCH" }),
+    );
   });
 
-  it("marks a lesson incomplete on second toggle", async () => {
-    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
-    const courseId = COURSE_ID();
-    const lessonId = db.courses[0].lessons[0]?.id ?? "l-0";
-    await enrollmentsApi.toggleLessonComplete(USER_ID, courseId, lessonId);
-    const result = await enrollmentsApi.toggleLessonComplete(USER_ID, courseId, lessonId);
-    expect(result?.completedLessonIds).not.toContain(lessonId);
-  });
-
-  it("returns null when user is not enrolled", async () => {
-    const result = await enrollmentsApi.toggleLessonComplete(USER_ID, COURSE_ID(), "l-0");
-    expect(result).toBeNull();
-  });
-
-  it("awards 10 points when marking a lesson complete", async () => {
-    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
-    const lessonId = db.courses[0].lessons[0]?.id ?? "l-0";
-    const before = db.users.find((u) => u.id === USER_ID)!.points;
-    await enrollmentsApi.toggleLessonComplete(USER_ID, COURSE_ID(), lessonId);
-    expect(db.users.find((u) => u.id === USER_ID)!.points).toBe(before + 10);
-  });
-
-  it("deducts 10 points when un-marking a lesson", async () => {
-    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
-    const lessonId = db.courses[0].lessons[0]?.id ?? "l-0";
-    await enrollmentsApi.toggleLessonComplete(USER_ID, COURSE_ID(), lessonId);
-    const pointsAfterComplete = db.users.find((u) => u.id === USER_ID)!.points;
-    await enrollmentsApi.toggleLessonComplete(USER_ID, COURSE_ID(), lessonId);
-    expect(db.users.find((u) => u.id === USER_ID)!.points).toBe(pointsAfterComplete - 10);
-  });
-
-  it("two toggles restore original points", async () => {
-    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
-    const lessonId = db.courses[0].lessons[0]?.id ?? "l-0";
-    const original = db.users.find((u) => u.id === USER_ID)!.points;
-    await enrollmentsApi.toggleLessonComplete(USER_ID, COURSE_ID(), lessonId);
-    await enrollmentsApi.toggleLessonComplete(USER_ID, COURSE_ID(), lessonId);
-    expect(db.users.find((u) => u.id === USER_ID)!.points).toBe(original);
+  it("returns null on error", async () => {
+    fetchMock.mockResolvedValueOnce(apiErr("Not enrolled"));
+    expect(await enrollmentsApi.toggleLessonComplete("u-demo", "c-1", "l-1")).toBeNull();
   });
 });
 
 describe("enrollmentsApi.recordTimeSpent", () => {
-  it("accumulates seconds in timeSpentSeconds", async () => {
-    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
-    await enrollmentsApi.recordTimeSpent(USER_ID, COURSE_ID(), 120);
-    const e = db.enrollments.find((e) => e.userId === USER_ID);
-    expect(e?.timeSpentSeconds).toBe(120);
+  it("calls PATCH /enrollments/{courseId}/time with seconds", async () => {
+    const updated = { ...enrollmentResp, timeSpentSeconds: 120 };
+    fetchMock.mockResolvedValueOnce(apiOk(updated));
+    const result = await enrollmentsApi.recordTimeSpent("u-demo", "c-1", 120);
+    expect(result?.timeSpentSeconds).toBe(120);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/enrollments/c-1/time",
+      expect.objectContaining({ method: "PATCH", body: JSON.stringify({ seconds: 120 }) }),
+    );
   });
 
-  it("is additive across multiple calls", async () => {
-    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
-    await enrollmentsApi.recordTimeSpent(USER_ID, COURSE_ID(), 60);
-    await enrollmentsApi.recordTimeSpent(USER_ID, COURSE_ID(), 90);
-    const e = db.enrollments.find((e) => e.userId === USER_ID);
-    expect(e?.timeSpentSeconds).toBe(150);
-  });
-
-  it("returns null when user is not enrolled", async () => {
-    const result = await enrollmentsApi.recordTimeSpent(USER_ID, COURSE_ID(), 60);
-    expect(result).toBeNull();
+  it("returns null on error", async () => {
+    fetchMock.mockResolvedValueOnce(apiErr("Not enrolled"));
+    expect(await enrollmentsApi.recordTimeSpent("u-demo", "c-1", 60)).toBeNull();
   });
 });
 
 describe("enrollmentsApi.markQuizPassed", () => {
-  it("adds the quiz id to passedQuizIds", async () => {
-    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
-    const result = await enrollmentsApi.markQuizPassed(USER_ID, COURSE_ID(), "q-1");
+  it("calls PATCH /enrollments/{courseId}/quiz/{quizId}/pass", async () => {
+    const updated = { ...enrollmentResp, passedQuizIds: ["q-1"] };
+    fetchMock.mockResolvedValueOnce(apiOk(updated));
+    const result = await enrollmentsApi.markQuizPassed("u-demo", "c-1", "q-1");
     expect(result?.passedQuizIds).toContain("q-1");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/enrollments/c-1/quiz/q-1/pass",
+      expect.objectContaining({ method: "PATCH" }),
+    );
   });
 
-  it("is idempotent — does not add duplicate quiz ids", async () => {
-    await enrollmentsApi.enroll(USER_ID, COURSE_ID());
-    await enrollmentsApi.markQuizPassed(USER_ID, COURSE_ID(), "q-1");
-    await enrollmentsApi.markQuizPassed(USER_ID, COURSE_ID(), "q-1");
-    const e = db.enrollments.find((e) => e.userId === USER_ID);
-    expect(e?.passedQuizIds.filter((id) => id === "q-1").length).toBe(1);
-  });
-
-  it("returns null when user is not enrolled", async () => {
-    const result = await enrollmentsApi.markQuizPassed(USER_ID, COURSE_ID(), "q-1");
-    expect(result).toBeNull();
+  it("returns null on error", async () => {
+    fetchMock.mockResolvedValueOnce(apiErr("Not enrolled"));
+    expect(await enrollmentsApi.markQuizPassed("u-demo", "c-1", "q-1")).toBeNull();
   });
 });

@@ -1,73 +1,94 @@
-import { db } from "./db";
-import { mockRequest } from "./client";
+import { apiFetch, setTokens } from "./client";
 import type { User } from "../types";
 
-const RESET_TOKENS: Record<string, string> = {};
+interface UserResponse {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  interests: string[];
+  createdAt: string;
+  points: number;
+  regionCode: string;
+  currencyCode: string;
+}
+
+interface AuthResponse {
+  user: UserResponse;
+  tokens: { accessToken: string; refreshToken: string };
+}
+
+function mapUser(r: UserResponse): User {
+  return {
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    password: "",
+    role: r.role as User["role"],
+    interests: r.interests ?? [],
+    createdAt: r.createdAt,
+    points: r.points,
+    regionCode: r.regionCode ?? "US",
+    currencyCode: r.currencyCode ?? "USD",
+  };
+}
 
 export const authApi = {
-  login: (email: string, password: string) =>
-    mockRequest(() => {
-      const user = db.users.find(
-        (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password,
-      );
-      if (!user) throw new Error("Invalid email or password.");
-      return user;
-    }),
+  login: async (email: string, password: string): Promise<User> => {
+    const res = await apiFetch<AuthResponse>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    setTokens(res.tokens);
+    return mapUser(res.user);
+  },
 
-  register: (name: string, email: string, password: string) =>
-    mockRequest(() => {
-      if (db.users.some((u) => u.email.toLowerCase() === email.toLowerCase()))
-        throw new Error("An account with that email already exists.");
-      const user: User = {
-        id: `u-${Date.now()}`,
-        name,
-        email,
-        password,
-        role: "user",
-        interests: [],
-        createdAt: new Date().toISOString(),
-        points: 0,
-        regionCode: "US",
-        currencyCode: "USD",
-      };
-      db.users.push(user);
-      return user;
-    }),
+  register: async (name: string, email: string, password: string): Promise<User> => {
+    const res = await apiFetch<AuthResponse>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ name, email, password }),
+    });
+    setTokens(res.tokens);
+    return mapUser(res.user);
+  },
 
-  getUser: (id: string) => mockRequest(() => db.users.find((u) => u.id === id) ?? null),
+  getUser: async (): Promise<User | null> => {
+    try {
+      const res = await apiFetch<UserResponse>("/auth/me");
+      return mapUser(res);
+    } catch {
+      return null;
+    }
+  },
 
-  updateInterests: (userId: string, interests: string[]) =>
-    mockRequest(() => {
-      const user = db.users.find((u) => u.id === userId);
-      if (!user) throw new Error("User not found.");
-      user.interests = interests;
-      return { ...user };
-    }),
+  updateInterests: async (_userId: string, interests: string[]): Promise<User> => {
+    const res = await apiFetch<UserResponse>("/auth/interests", {
+      method: "PUT",
+      body: JSON.stringify({ interests }),
+    });
+    return mapUser(res);
+  },
 
-  updateLocale: (userId: string, regionCode: string, currencyCode: string) =>
-    mockRequest(() => {
-      const user = db.users.find((u) => u.id === userId);
-      if (!user) throw new Error("User not found.");
-      user.regionCode = regionCode;
-      user.currencyCode = currencyCode;
-      return { ...user };
-    }),
+  updateLocale: async (_userId: string, regionCode: string, currencyCode: string): Promise<User> => {
+    const res = await apiFetch<UserResponse>("/auth/locale", {
+      method: "PUT",
+      body: JSON.stringify({ regionCode, currencyCode }),
+    });
+    return mapUser(res);
+  },
 
-  requestReset: (email: string) =>
-    mockRequest(() => {
-      const user = db.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-      if (!user) throw new Error("No account with that email.");
-      const token = Math.random().toString(36).slice(2, 10);
-      RESET_TOKENS[token] = user.email;
-      return token;
-    }),
+  requestReset: async (email: string): Promise<string> => {
+    const res = await apiFetch<{ token: string }>("/auth/reset-request", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+    return res.token;
+  },
 
-  resetPassword: (token: string, password: string) =>
-    mockRequest(() => {
-      const email = RESET_TOKENS[token];
-      if (!email) throw new Error("Invalid or expired reset link.");
-      const user = db.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-      if (user) user.password = password;
-      delete RESET_TOKENS[token];
-    }),
+  resetPassword: async (token: string, password: string): Promise<void> => {
+    await apiFetch<void>("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, password }),
+    });
+  },
 };

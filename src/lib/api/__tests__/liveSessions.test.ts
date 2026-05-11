@@ -1,98 +1,97 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { resetDb } from "@/test/helpers";
-import { db } from "../db";
+import { apiOk, apiErr } from "@/test/helpers";
 import type { ContentStatus } from "@/lib/types";
 
-vi.mock("../client", () => ({
-  mockRequest: async <T>(fn: () => T) => fn(),
-}));
+const fetchMock = vi.fn();
+vi.stubGlobal("fetch", fetchMock);
 
 const { liveSessionsApi } = await import("../liveSessions");
 
-beforeEach(() => {
-  resetDb();
-});
+const sessionResp = {
+  id: "ls-1",
+  title: "React Deep Dive",
+  instructor: "Jane",
+  description: "Advanced React patterns",
+  scheduledAt: "2026-06-01T10:00:00Z",
+  durationMinutes: 90,
+  topic: "Programming",
+  joinUrl: "https://meet.example.com/ls-1",
+  courseId: "c-1",
+  registeredCount: 10,
+  maxAttendees: 50,
+  listPrice: 29,
+  salePrice: 19,
+  status: "published",
+};
+
+beforeEach(() => fetchMock.mockReset());
 
 describe("liveSessionsApi.list", () => {
-  it("returns only published sessions", async () => {
-    db.liveSessions[0].status = "draft";
+  it("calls GET /live-sessions and returns mapped sessions", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk([sessionResp]));
     const result = await liveSessionsApi.list();
-    expect(result.every((s) => s.status === "published")).toBe(true);
-    expect(result.find((s) => s.id === db.liveSessions[0].id)).toBeUndefined();
-  });
-
-  it("returns copies — mutations do not affect db", async () => {
-    const result = await liveSessionsApi.list();
-    result[0].title = "Mutated";
-    const again = await liveSessionsApi.list();
-    expect(again[0].title).not.toBe("Mutated");
+    expect(result).toHaveLength(1);
+    expect(result[0].title).toBe("React Deep Dive");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/live-sessions",
+      expect.any(Object),
+    );
   });
 });
 
 describe("liveSessionsApi.listAll", () => {
-  it("returns all sessions regardless of status", async () => {
-    db.liveSessions[0].status = "draft";
-    const result = await liveSessionsApi.listAll();
-    expect(result.length).toBe(db.liveSessions.length);
-    expect(result.find((s) => s.status !== "published")).toBeTruthy();
+  it("calls GET /live-sessions/all", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk([sessionResp]));
+    await liveSessionsApi.listAll();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/live-sessions/all",
+      expect.any(Object),
+    );
   });
 });
 
 describe("liveSessionsApi.upsert", () => {
-  it("creates a new session when id does not exist", async () => {
-    const before = db.liveSessions.length;
-    await liveSessionsApi.upsert({
-      id: "ls-new",
-      title: "Test Session",
-      instructor: "Tester",
-      description: "desc",
-      scheduledAt: "2026-06-01T10:00:00.000Z",
-      durationMinutes: 60,
-      topic: "Programming",
-      joinUrl: "https://meet.example.com/test",
-      registeredCount: 0,
-      maxAttendees: 50,
+  it("calls PUT /live-sessions and returns mapped session", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk(sessionResp));
+    const session = {
+      id: "ls-1", title: "React Deep Dive", instructor: "Jane", description: "Advanced",
+      scheduledAt: "2026-06-01T10:00:00Z", durationMinutes: 90, topic: "Programming",
+      joinUrl: "https://meet.example.com/ls-1", registeredCount: 0, maxAttendees: 50,
       status: "published" as ContentStatus,
-    });
-    expect(db.liveSessions.length).toBe(before + 1);
-  });
-
-  it("updates an existing session when id matches", async () => {
-    const id = db.liveSessions[0].id;
-    const before = db.liveSessions.length;
-    await liveSessionsApi.upsert({ ...db.liveSessions[0], title: "Updated Title" });
-    expect(db.liveSessions.length).toBe(before);
-    expect(db.liveSessions.find((s) => s.id === id)?.title).toBe("Updated Title");
+    };
+    const result = await liveSessionsApi.upsert(session);
+    expect(result.title).toBe("React Deep Dive");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/live-sessions",
+      expect.objectContaining({ method: "PUT" }),
+    );
   });
 });
 
 describe("liveSessionsApi.setStatus", () => {
-  it("sets status to draft", async () => {
-    await liveSessionsApi.setStatus(db.liveSessions[0].id, "draft");
-    expect(db.liveSessions[0].status).toBe("draft");
+  it("calls PATCH /live-sessions/{id}/status with status body", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk({ ...sessionResp, status: "draft" }));
+    const result = await liveSessionsApi.setStatus("ls-1", "draft");
+    expect(result?.status).toBe("draft");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/live-sessions/ls-1/status",
+      expect.objectContaining({ method: "PATCH", body: JSON.stringify({ status: "draft" }) }),
+    );
   });
 
-  it("sets status to archived", async () => {
-    await liveSessionsApi.setStatus(db.liveSessions[0].id, "archived");
-    expect(db.liveSessions[0].status).toBe("archived");
-  });
-
-  it("returns null for unknown id", async () => {
-    const result = await liveSessionsApi.setStatus("ghost", "published");
-    expect(result).toBeNull();
+  it("returns null on error", async () => {
+    fetchMock.mockResolvedValueOnce(apiErr("Not found"));
+    expect(await liveSessionsApi.setStatus("ghost", "published")).toBeNull();
   });
 });
 
 describe("liveSessionsApi.delete", () => {
-  it("removes the session from db", async () => {
-    const id = db.liveSessions[0].id;
-    await liveSessionsApi.delete(id);
-    expect(db.liveSessions.find((s) => s.id === id)).toBeUndefined();
-  });
-
-  it("is a no-op for a non-existent id", async () => {
-    const before = db.liveSessions.length;
-    await liveSessionsApi.delete("ghost");
-    expect(db.liveSessions.length).toBe(before);
+  it("calls DELETE /live-sessions/{id}", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk(null));
+    await liveSessionsApi.delete("ls-1");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/live-sessions/ls-1",
+      expect.objectContaining({ method: "DELETE" }),
+    );
   });
 });

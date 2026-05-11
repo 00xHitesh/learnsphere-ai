@@ -1,99 +1,62 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { resetDb } from "@/test/helpers";
-import { db } from "../db";
+import { apiOk, apiErr } from "@/test/helpers";
 
-// Remove artificial delays entirely for all tests in this file
-vi.mock("../client", () => ({
-  mockRequest: async <T>(fn: () => T) => fn(),
-}));
-
-// transactions.purchase has its own hard-coded setTimeout(900ms); stub it away
-vi.stubGlobal("setTimeout", (fn: () => void) => { fn(); return 0; });
+const fetchMock = vi.fn();
+vi.stubGlobal("fetch", fetchMock);
 
 const { transactionsApi } = await import("../transactions");
 
-const USER_ID = "u-demo";
+const txResp = {
+  id: "t-1",
+  userId: "u-demo",
+  courseId: "c-1",
+  amount: 29,
+  status: "success",
+  createdAt: "2025-05-01T10:00:00Z",
+};
 
-beforeEach(() => {
-  resetDb();
-});
+beforeEach(() => fetchMock.mockReset());
 
 describe("transactionsApi.listByUser", () => {
-  it("returns empty array with no transactions", async () => {
-    expect(await transactionsApi.listByUser(USER_ID)).toEqual([]);
-  });
-
-  it("returns only transactions for the given user", async () => {
-    const courseId = db.courses[0].id;
-    db.transactions.push(
-      { id: "t-1", userId: USER_ID, courseId, amount: 29, status: "success", date: "" },
-      { id: "t-2", userId: "u-other", courseId, amount: 29, status: "success", date: "" },
+  it("calls GET /transactions and maps createdAt → date", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk([txResp]));
+    const result = await transactionsApi.listByUser("u-demo");
+    expect(result).toHaveLength(1);
+    expect(result[0].date).toBe("2025-05-01T10:00:00Z");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/transactions",
+      expect.any(Object),
     );
-    const result = await transactionsApi.listByUser(USER_ID);
-    expect(result.length).toBe(1);
-    expect(result[0].userId).toBe(USER_ID);
   });
 });
 
 describe("transactionsApi.listAll", () => {
-  it("returns all transactions across users", async () => {
-    const courseId = db.courses[0].id;
-    db.transactions.push(
-      { id: "t-1", userId: USER_ID, courseId, amount: 29, status: "success", date: "" },
-      { id: "t-2", userId: "u-other", courseId, amount: 19, status: "success", date: "" },
+  it("calls GET /transactions/all", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk([txResp]));
+    await transactionsApi.listAll();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/transactions/all",
+      expect.any(Object),
     );
-    const result = await transactionsApi.listAll();
-    expect(result.length).toBe(2);
   });
 });
 
 describe("transactionsApi.purchase", () => {
-  it("creates a transaction record for a valid course", async () => {
-    const course = db.courses.find((c) => c.listPrice > 0) ?? db.courses[0];
-    await transactionsApi.purchase(USER_ID, course.id);
-    expect(db.transactions.length).toBe(1);
-    expect(db.transactions[0].userId).toBe(USER_ID);
-    expect(db.transactions[0].courseId).toBe(course.id);
-    expect(db.transactions[0].status).toBe("success");
-  });
-
-  it("auto-enrolls the user after purchase", async () => {
-    const course = db.courses[0];
-    await transactionsApi.purchase(USER_ID, course.id);
-    const enrollment = db.enrollments.find(
-      (e) => e.userId === USER_ID && e.courseId === course.id,
-    );
-    expect(enrollment).toBeTruthy();
-  });
-
-  it("does not double-enroll if already enrolled", async () => {
-    const course = db.courses[0];
-    db.enrollments.push({
-      id: "e-existing",
-      userId: USER_ID,
-      courseId: course.id,
-      completedLessonIds: [],
-      passedQuizIds: [],
-      enrolledAt: "",
-      timeSpentSeconds: 0,
-    });
-    await transactionsApi.purchase(USER_ID, course.id);
-    const userEnrollments = db.enrollments.filter(
-      (e) => e.userId === USER_ID && e.courseId === course.id,
-    );
-    expect(userEnrollments.length).toBe(1);
-  });
-
-  it("throws when course is not found", async () => {
-    await expect(transactionsApi.purchase(USER_ID, "nonexistent-course")).rejects.toThrow(
-      "Course not found.",
+  it("calls POST /transactions with courseId and returns transaction", async () => {
+    const enrollResp = { id: "e-1", userId: "u-demo", courseId: "c-1", completedLessonIds: [], passedQuizIds: [], enrolledAt: "", timeSpentSeconds: 0 };
+    fetchMock.mockResolvedValueOnce(apiOk({ transaction: txResp, enrollment: enrollResp }));
+    const result = await transactionsApi.purchase("u-demo", "c-1");
+    expect(result.id).toBe("t-1");
+    expect(result.amount).toBe(29);
+    expect(result.status).toBe("success");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/transactions",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ courseId: "c-1" }) }),
     );
   });
 
-  it("records the correct price from the course", async () => {
-    const course = db.courses.find((c) => c.listPrice > 0);
-    if (!course) return; // skip if no paid courses in seed
-    await transactionsApi.purchase(USER_ID, course.id);
-    expect(db.transactions[0].amount).toBe(course.salePrice ?? course.listPrice);
+  it("throws on server error", async () => {
+    fetchMock.mockResolvedValueOnce(apiErr("Course not found."));
+    await expect(transactionsApi.purchase("u-demo", "c-ghost")).rejects.toThrow("Course not found.");
   });
 });

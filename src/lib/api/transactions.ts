@@ -1,44 +1,42 @@
-import { db } from "./db";
-import { mockRequest } from "./client";
-import type { Enrollment, Transaction } from "../types";
+import { apiFetch } from "./client";
+import type { Transaction } from "../types";
+
+interface TransactionResponse {
+  id: string;
+  userId: string;
+  courseId: string;
+  amount: number;
+  status: string;
+  createdAt: string;
+}
+
+function mapTransaction(r: TransactionResponse): Transaction {
+  return {
+    id: r.id,
+    userId: r.userId,
+    courseId: r.courseId,
+    amount: r.amount,
+    status: r.status as Transaction["status"],
+    date: r.createdAt,
+  };
+}
 
 export const transactionsApi = {
-  listByUser: (userId: string) =>
-    mockRequest(() =>
-      db.transactions.filter((t) => t.userId === userId).map((t) => ({ ...t })),
-    ),
+  listByUser: async (_userId: string): Promise<Transaction[]> => {
+    const res = await apiFetch<TransactionResponse[]>("/transactions");
+    return res.map(mapTransaction);
+  },
 
-  listAll: () => mockRequest(() => db.transactions.map((t) => ({ ...t }))),
+  listAll: async (): Promise<Transaction[]> => {
+    const res = await apiFetch<TransactionResponse[]>("/transactions/all");
+    return res.map(mapTransaction);
+  },
 
-  purchase: async (userId: string, courseId: string): Promise<Transaction> => {
-    const course = db.courses.find((c) => c.id === courseId);
-    if (!course) throw new Error("Course not found.");
-    // simulate payment processing delay
-    await new Promise((r) => setTimeout(r, 900));
-    const tx: Transaction = {
-      id: `t-${Date.now()}`,
-      userId,
-      courseId,
-      amount: course.salePrice ?? course.listPrice,
-      status: "success",
-      date: new Date().toISOString(),
-    };
-    db.transactions.push(tx);
-    const alreadyEnrolled = db.enrollments.some(
-      (e) => e.userId === userId && e.courseId === courseId,
+  purchase: async (_userId: string, courseId: string): Promise<Transaction> => {
+    const res = await apiFetch<{ transaction: TransactionResponse; enrollment: unknown }>(
+      "/transactions",
+      { method: "POST", body: JSON.stringify({ courseId }) },
     );
-    if (!alreadyEnrolled) {
-      const enrollment: Enrollment = {
-        id: `e-${Date.now() + 1}`,
-        userId,
-        courseId,
-        completedLessonIds: [],
-        passedQuizIds: [],
-        enrolledAt: new Date().toISOString(),
-        timeSpentSeconds: 0,
-      };
-      db.enrollments.push(enrollment);
-    }
-    return { ...tx };
+    return mapTransaction(res.transaction);
   },
 };

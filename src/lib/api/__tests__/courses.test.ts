@@ -1,146 +1,150 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { resetDb } from "@/test/helpers";
-import { db } from "../db";
-import type { ContentStatus, Course } from "@/lib/types";
+import { apiOk, apiErr } from "@/test/helpers";
+import type { ContentStatus } from "@/lib/types";
 
-vi.mock("../client", () => ({
-  mockRequest: async <T>(fn: () => T) => fn(),
-}));
+const fetchMock = vi.fn();
+vi.stubGlobal("fetch", fetchMock);
 
 const { coursesApi } = await import("../courses");
 
-beforeEach(() => {
-  resetDb();
-});
+const lessonResp = { id: "l-1", title: "Intro", duration: "5:00", videoUrl: "https://yt.com/v1", isPreview: true, description: "Intro lesson", courseId: "c-1", sortOrder: 1 };
+const quizOptionResp = { id: "o-1", text: "Yes", optionKey: "A" };
+const quizQuestionResp = { id: "q-q-1", prompt: "Is this good?", options: [quizOptionResp, { id: "o-2", text: "No", optionKey: "B" }], correctOptionKeys: ["A"], explanation: "Because yes" };
+const quizResp = { id: "q-1", title: "Final Quiz", description: "Test yourself", passingScore: 70, questions: [quizQuestionResp], courseId: "c-1" };
+const reviewResp = { id: "r-1", reviewerName: "Bob", rating: 5, comment: "Great!", reviewedAt: "2025-03-01", userId: "u-1", courseId: "c-1" };
 
-const mockCourse = (): Course => ({
-  id: "c-test-1",
-  title: "Test Course",
-  slug: "test-course",
-  description: "A test course",
+const courseResp = {
+  id: "c-1",
+  title: "React Basics",
+  slug: "react-basics",
+  description: "Learn React",
   summary: "Short summary",
-  category: "Design",
+  category: "Programming",
   level: "Beginner",
-  listPrice: 0,
-  rating: 4.5,
-  students: 100,
-  instructor: "Tester",
-  instructorBio: "Bio",
-  cover: "✦",
-  lessons: [],
-  reviews: [],
-  quizzes: [],
-  tags: ["test"],
-  status: "published" as ContentStatus,
+  listPrice: 49,
+  salePrice: 29,
+  rating: 4.8,
+  studentCount: 500,
+  instructor: "Jane",
+  instructorBio: "10y experience",
+  cover: "⚛",
+  lessons: [lessonResp],
+  quiz: quizResp,
+  reviews: [reviewResp],
+  tags: ["react", "frontend"],
+  status: "published",
   createdAt: "2025-01-01",
-});
+};
+
+beforeEach(() => fetchMock.mockReset());
 
 describe("coursesApi.list", () => {
-  it("returns only published courses", async () => {
-    db.courses[0].status = "draft";
-    const courses = await coursesApi.list();
-    expect(courses.every((c) => c.status === "published")).toBe(true);
-    expect(courses.find((c) => c.id === db.courses[0].id)).toBeUndefined();
+  it("maps studentCount → students", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk([courseResp]));
+    const [course] = await coursesApi.list();
+    expect(course.students).toBe(500);
   });
 
-  it("returns copies (mutations do not affect the DB)", async () => {
-    const courses = await coursesApi.list();
-    courses[0].title = "Mutated";
-    const again = await coursesApi.list();
-    expect(again[0].title).not.toBe("Mutated");
+  it("maps quiz (singular) → quizzes (array)", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk([courseResp]));
+    const [course] = await coursesApi.list();
+    expect(course.quizzes).toHaveLength(1);
+    expect(course.quizzes[0].id).toBe("q-1");
   });
-});
 
-describe("coursesApi.listAll", () => {
-  it("returns all courses regardless of status", async () => {
-    db.courses[0].status = "draft";
-    const all = await coursesApi.listAll();
-    expect(all.length).toBe(db.courses.length);
-    expect(all.find((c) => c.status !== "published")).toBeTruthy();
+  it("maps isPreview → preview on lessons", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk([courseResp]));
+    const [course] = await coursesApi.list();
+    expect(course.lessons[0].preview).toBe(true);
+  });
+
+  it("maps reviewerName → user and reviewedAt → date on reviews", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk([courseResp]));
+    const [course] = await coursesApi.list();
+    expect(course.reviews[0].user).toBe("Bob");
+    expect(course.reviews[0].date).toBe("2025-03-01");
+  });
+
+  it("maps correctOptionKeys via optionKey → correctOptionIds", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk([courseResp]));
+    const [course] = await coursesApi.list();
+    expect(course.quizzes[0].questions[0].correctOptionIds).toEqual(["o-1"]);
+  });
+
+  it("returns empty quizzes array when quiz is null", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk([{ ...courseResp, quiz: null }]));
+    const [course] = await coursesApi.list();
+    expect(course.quizzes).toEqual([]);
   });
 });
 
 describe("coursesApi.getBySlug", () => {
-  it("returns the matching published course", async () => {
-    const first = db.courses.find((c) => c.status === "published")!;
-    const course = await coursesApi.getBySlug(first.slug);
-    expect(course?.id).toBe(first.id);
+  it("returns mapped course", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk(courseResp));
+    const course = await coursesApi.getBySlug("react-basics");
+    expect(course?.title).toBe("React Basics");
+    expect(course?.students).toBe(500);
   });
 
-  it("returns null for an unknown slug", async () => {
-    const course = await coursesApi.getBySlug("does-not-exist");
+  it("returns null on error", async () => {
+    fetchMock.mockResolvedValueOnce(apiErr("Not found"));
+    const course = await coursesApi.getBySlug("nonexistent");
     expect(course).toBeNull();
   });
 
-  it("returns null for a non-published course slug", async () => {
-    const c = db.courses[0];
-    c.status = "draft";
-    const course = await coursesApi.getBySlug(c.slug);
-    expect(course).toBeNull();
+  it("calls GET /courses/{slug}", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk(courseResp));
+    await coursesApi.getBySlug("react-basics");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/courses/react-basics",
+      expect.any(Object),
+    );
   });
 });
 
 describe("coursesApi.upsert", () => {
-  it("inserts a new course when id does not exist", async () => {
-    const before = db.courses.length;
-    const c = mockCourse();
-    await coursesApi.upsert(c);
-    expect(db.courses.length).toBe(before + 1);
-    expect(db.courses.find((x) => x.id === "c-test-1")).toBeTruthy();
-  });
-
-  it("updates an existing course when id matches", async () => {
-    const c = mockCourse();
-    await coursesApi.upsert(c);
-    await coursesApi.upsert({ ...c, title: "Updated Title" });
-    const found = db.courses.find((x) => x.id === c.id);
-    expect(found?.title).toBe("Updated Title");
-    expect(db.courses.filter((x) => x.id === c.id).length).toBe(1);
+  it("calls PUT /courses and returns mapped course", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk(courseResp));
+    const course = await coursesApi.upsert({
+      id: "c-1", title: "React Basics", slug: "react-basics", description: "Learn React",
+      summary: "Short", category: "Programming", level: "Beginner", listPrice: 49,
+      instructor: "Jane", instructorBio: "10y", cover: "⚛", tags: ["react"],
+      status: "published" as ContentStatus, createdAt: "2025-01-01", students: 0,
+      rating: 0, lessons: [], quizzes: [], reviews: [],
+    });
+    expect(course.students).toBe(500);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/courses",
+      expect.objectContaining({ method: "PUT" }),
+    );
   });
 });
 
 describe("coursesApi.delete", () => {
-  it("removes the course from db", async () => {
-    const c = mockCourse();
-    await coursesApi.upsert(c);
-    await coursesApi.delete(c.id);
-    expect(db.courses.find((x) => x.id === c.id)).toBeUndefined();
-  });
-
-  it("cascades — removes related enrollments", async () => {
-    const c = mockCourse();
-    await coursesApi.upsert(c);
-    db.enrollments.push({ id: "e-1", userId: "u-demo", courseId: c.id, completedLessonIds: [], passedQuizIds: [], enrolledAt: "", timeSpentSeconds: 0 });
-    await coursesApi.delete(c.id);
-    expect(db.enrollments.find((e) => e.courseId === c.id)).toBeUndefined();
+  it("calls DELETE /courses/{id}", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk(null));
+    await coursesApi.delete("c-1");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/courses/c-1",
+      expect.objectContaining({ method: "DELETE" }),
+    );
   });
 });
 
 describe("coursesApi.setStatus", () => {
-  it("sets status to draft", async () => {
-    const c = db.courses.find((x) => x.status === "published")!;
-    await coursesApi.setStatus(c.id, "draft");
-    expect(db.courses.find((x) => x.id === c.id)?.status).toBe("draft");
+  it("calls PATCH /courses/{id}/status with status body", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk({ ...courseResp, status: "draft" }));
+    const course = await coursesApi.setStatus("c-1", "draft");
+    expect(course?.status).toBe("draft");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/courses/c-1/status",
+      expect.objectContaining({ method: "PATCH", body: JSON.stringify({ status: "draft" }) }),
+    );
   });
 
-  it("sets status to in_review", async () => {
-    await coursesApi.setStatus(db.courses[0].id, "in_review");
-    expect(db.courses[0].status).toBe("in_review");
-  });
-
-  it("sets status to published", async () => {
-    db.courses[0].status = "draft";
-    await coursesApi.setStatus(db.courses[0].id, "published");
-    expect(db.courses[0].status).toBe("published");
-  });
-
-  it("sets status to archived", async () => {
-    await coursesApi.setStatus(db.courses[0].id, "archived");
-    expect(db.courses[0].status).toBe("archived");
-  });
-
-  it("returns null for unknown id", async () => {
-    const result = await coursesApi.setStatus("unknown-id", "published");
+  it("returns null on error", async () => {
+    fetchMock.mockResolvedValueOnce(apiErr("Not found"));
+    const result = await coursesApi.setStatus("ghost", "published");
     expect(result).toBeNull();
   });
 });

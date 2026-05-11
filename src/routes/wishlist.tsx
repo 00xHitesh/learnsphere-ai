@@ -57,7 +57,7 @@ function WishlistPage() {
 
   async function handleEnroll(course: Course) {
     if (course.listPrice === 0) {
-      enroll.mutate(
+      purchase.mutate(
         { userId: currentUser!.id, courseId: course.id },
         {
           onSuccess: () => {

@@ -1,32 +1,89 @@
-import { mockRequest } from "./client";
-import { db } from "./db";
+import { apiFetch } from "./client";
 import type { ContentStatus, LiveSession } from "../types";
 
+interface LiveSessionResponse {
+  id: string;
+  title: string;
+  instructor: string;
+  description: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  topic: string;
+  joinUrl: string;
+  courseId?: string;
+  registeredCount: number;
+  maxAttendees: number;
+  listPrice?: number;
+  salePrice?: number;
+  status: string;
+}
+
+function mapSession(r: LiveSessionResponse): LiveSession {
+  return {
+    id: r.id,
+    title: r.title,
+    instructor: r.instructor,
+    description: r.description,
+    scheduledAt: r.scheduledAt,
+    durationMinutes: r.durationMinutes,
+    topic: r.topic,
+    joinUrl: r.joinUrl,
+    courseId: r.courseId || undefined,
+    registeredCount: r.registeredCount,
+    maxAttendees: r.maxAttendees,
+    listPrice: r.listPrice || undefined,
+    salePrice: r.salePrice || undefined,
+    status: r.status as ContentStatus,
+  };
+}
+
 export const liveSessionsApi = {
-  list: () => mockRequest(() => db.liveSessions.filter((s) => s.status === "published").map((s) => ({ ...s }))),
+  list: async (): Promise<LiveSession[]> => {
+    const res = await apiFetch<LiveSessionResponse[]>("/live-sessions");
+    return res.map(mapSession);
+  },
 
-  listAll: () => mockRequest(() => db.liveSessions.map((s) => ({ ...s }))),
+  listAll: async (): Promise<LiveSession[]> => {
+    const res = await apiFetch<LiveSessionResponse[]>("/live-sessions/all");
+    return res.map(mapSession);
+  },
 
-  upsert: (session: LiveSession) =>
-    mockRequest(() => {
-      const idx = db.liveSessions.findIndex((s) => s.id === session.id);
-      if (idx >= 0) {
-        db.liveSessions[idx] = { ...session };
-      } else {
-        db.liveSessions.push({ ...session });
-      }
-      return { ...session };
-    }),
+  upsert: async (session: LiveSession): Promise<LiveSession> => {
+    const res = await apiFetch<LiveSessionResponse>("/live-sessions", {
+      method: "PUT",
+      body: JSON.stringify({
+        id: session.id,
+        title: session.title,
+        instructor: session.instructor,
+        description: session.description,
+        scheduledAt: session.scheduledAt,
+        durationMinutes: session.durationMinutes,
+        topic: session.topic,
+        joinUrl: session.joinUrl,
+        courseId: session.courseId,
+        registeredCount: session.registeredCount,
+        maxAttendees: session.maxAttendees,
+        listPrice: session.listPrice,
+        salePrice: session.salePrice,
+        status: session.status,
+      }),
+    });
+    return mapSession(res);
+  },
 
-  delete: (id: string) =>
-    mockRequest(() => {
-      db.liveSessions = db.liveSessions.filter((s) => s.id !== id);
-    }),
+  delete: async (id: string): Promise<void> => {
+    await apiFetch<void>(`/live-sessions/${id}`, { method: "DELETE" });
+  },
 
-  setStatus: (id: string, status: ContentStatus) =>
-    mockRequest(() => {
-      const session = db.liveSessions.find((s) => s.id === id);
-      if (session) session.status = status;
-      return session ? { ...session } : null;
-    }),
+  setStatus: async (id: string, status: ContentStatus): Promise<LiveSession | null> => {
+    try {
+      const res = await apiFetch<LiveSessionResponse>(`/live-sessions/${id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      return mapSession(res);
+    } catch {
+      return null;
+    }
+  },
 };

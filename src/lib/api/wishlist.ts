@@ -1,20 +1,20 @@
-import { db } from "./db";
-import { mockRequest } from "./client";
+import { apiFetch } from "./client";
+
+export interface WishlistItem {
+  userId: string;
+  courseId: string;
+  addedAt: string;
+}
 
 export const wishlistApi = {
-  listByUser: (userId: string) =>
-    mockRequest(() => db.wishlists.filter((w) => w.userId === userId).map((w) => ({ ...w }))),
+  listByUser: (_userId: string): Promise<WishlistItem[]> =>
+    apiFetch<WishlistItem[]>("/wishlist"),
 
-  toggle: (userId: string, courseId: string) =>
-    mockRequest(() => {
-      const idx = db.wishlists.findIndex(
-        (w) => w.userId === userId && w.courseId === courseId,
-      );
-      if (idx >= 0) {
-        db.wishlists.splice(idx, 1);
-        return false;
-      }
-      db.wishlists.push({ userId, courseId });
-      return true;
-    }),
+  toggle: async (_userId: string, courseId: string): Promise<boolean> => {
+    const res = await apiFetch<{ wishlisted: boolean }>("/wishlist/toggle", {
+      method: "POST",
+      body: JSON.stringify({ courseId }),
+    });
+    return res.wishlisted;
+  },
 };

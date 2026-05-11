@@ -9,6 +9,7 @@ import {
   useEnrollment,
   useToggleLessonComplete,
 } from "@/lib/query/enrollments";
+import { usePurchase } from "@/lib/query/transactions";
 import { useInWishlist, useToggleWishlist } from "@/lib/query/wishlist";
 import { CourseCard } from "@/components/CourseCard";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,7 @@ function CourseDetailPage() {
   const pct = useCourseProgress(currentUser?.id, course?.id ?? "", course?.lessons.length ?? 0);
   const inWishlist = useInWishlist(currentUser?.id, course?.id ?? "");
   const enrollMutation = useEnroll();
+  const purchaseMutation = usePurchase();
   const toggleWishlistMutation = useToggleWishlist();
   const toggleLessonMutation = useToggleLessonComplete();
 
@@ -124,7 +126,7 @@ function CourseDetailPage() {
       return;
     }
     if (course.listPrice === 0) {
-      enrollMutation.mutate(
+      purchaseMutation.mutate(
         { userId: currentUser.id, courseId: course.id },
         { onSuccess: () => toast.success("Enrolled. Happy learning.") },
       );
@@ -232,7 +234,7 @@ function CourseDetailPage() {
                 <Button
                   onClick={handleEnroll}
                   className="w-full"
-                  disabled={enrollMutation.isPending}
+                  disabled={enrollMutation.isPending || purchaseMutation.isPending}
                 >
                   {course.listPrice === 0 ? "Enroll for free" : "Buy this course"}
                 </Button>

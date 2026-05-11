@@ -1,7 +1,7 @@
-import { mockRequest } from "./client";
-import { db } from "./db";
+import { apiFetch } from "./client";
+import type { Currency, Region } from "../types";
 
 export const localeApi = {
-  getCurrencies: () => mockRequest(() => db.currencies.map((c) => ({ ...c }))),
-  getRegions: () => mockRequest(() => db.regions.map((r) => ({ ...r }))),
+  getCurrencies: (): Promise<Currency[]> => apiFetch<Currency[]>("/locale/currencies"),
+  getRegions: (): Promise<Region[]> => apiFetch<Region[]>("/locale/regions"),
 };

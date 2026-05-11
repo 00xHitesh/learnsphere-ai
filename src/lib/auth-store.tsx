@@ -6,9 +6,8 @@ import {
   type ReactNode,
 } from "react";
 import { authApi } from "./api";
+import { clearTokens, getAccessToken } from "./api/client";
 import type { User } from "./types";
-
-const AUTH_KEY = "lumen-auth-v1";
 
 interface AuthContextValue {
   currentUser: User | null;
@@ -25,30 +24,18 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Server always starts with null — localStorage loads after mount to prevent hydration mismatch
+  // Server always starts with null — token check runs after mount to prevent hydration mismatch
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const raw = localStorage.getItem(AUTH_KEY);
-    if (raw) {
-      try {
-        const { userId } = JSON.parse(raw) as { userId: string };
-        if (userId) {
-          authApi.getUser(userId).then((user) => {
-            if (user) setCurrentUser(user);
-          });
-        }
-      } catch {
-        /* ignore corrupt data */
-      }
+    if (getAccessToken()) {
+      authApi.getUser().then((user) => {
+        if (user) setCurrentUser(user);
+      });
     }
     setMounted(true);
   }, []);
-
-  const persistUserId = (userId: string | null) => {
-    localStorage.setItem(AUTH_KEY, JSON.stringify({ userId }));
-  };
 
   const value: AuthContextValue = {
     currentUser,
@@ -56,18 +43,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async login(email, password) {
       const user = await authApi.login(email, password);
       setCurrentUser(user);
-      persistUserId(user.id);
       return user;
     },
     async register(name, email, password) {
       const user = await authApi.register(name, email, password);
       setCurrentUser(user);
-      persistUserId(user.id);
       return user;
     },
     logout() {
       setCurrentUser(null);
-      persistUserId(null);
+      clearTokens();
     },
     requestReset: (email) => authApi.requestReset(email),
     resetPassword: (token, password) => authApi.resetPassword(token, password),

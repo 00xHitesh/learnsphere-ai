@@ -23,8 +23,19 @@ export function useUpsertCourse() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (course: Course) => coursesApi.upsert(course),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.courses.all() });
+    onSuccess: (saved) => {
+      // Update admin list in-place so lessons/quizzes aren't overwritten by a server refetch
+      qc.setQueryData<Course[]>(qk.courses.adminList(), (old = []) => {
+        const idx = old.findIndex((c) => c.id === saved.id);
+        if (idx >= 0) {
+          const next = [...old];
+          next[idx] = saved;
+          return next;
+        }
+        return [...old, saved];
+      });
+      // Invalidate published list so status/price changes propagate
+      qc.invalidateQueries({ queryKey: qk.courses.list() });
     },
   });
 }

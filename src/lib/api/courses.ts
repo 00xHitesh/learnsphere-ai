@@ -1,36 +1,190 @@
-import { db } from "./db";
-import { mockRequest } from "./client";
-import type { ContentStatus, Course } from "../types";
+import { apiFetch } from "./client";
+import type { ContentStatus, Course, Lesson, Quiz, QuizOption, QuizQuestion, Review } from "../types";
+
+interface LessonResponse {
+  id: string;
+  title: string;
+  duration: string;
+  videoUrl?: string;
+  isPreview?: boolean;
+  description?: string;
+  courseId: string;
+  sortOrder: number;
+}
+
+interface QuizOptionResponse {
+  id: string;
+  text: string;
+  optionKey: string;
+}
+
+interface QuizQuestionResponse {
+  id: string;
+  prompt: string;
+  options: QuizOptionResponse[];
+  correctOptionKeys: string[];
+  explanation?: string;
+}
+
+interface QuizResponse {
+  id: string;
+  title: string;
+  description?: string;
+  passingScore: number;
+  questions: QuizQuestionResponse[];
+  courseId: string;
+}
+
+interface ReviewResponse {
+  id: string;
+  reviewerName: string;
+  rating: number;
+  comment: string;
+  reviewedAt: string;
+  userId: string;
+  courseId: string;
+}
+
+interface CourseResponse {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  summary: string;
+  category: string;
+  level: string;
+  listPrice: number;
+  salePrice?: number;
+  rating: number;
+  studentCount: number;
+  instructor: string;
+  instructorBio: string;
+  cover: string;
+  lessons: LessonResponse[];
+  quiz?: QuizResponse;
+  reviews: ReviewResponse[];
+  tags: string[];
+  status: string;
+  createdAt: string;
+}
+
+function mapLesson(r: LessonResponse): Lesson {
+  return {
+    id: r.id,
+    title: r.title,
+    duration: r.duration,
+    videoUrl: r.videoUrl || undefined,
+    preview: r.isPreview,
+    description: r.description || undefined,
+  };
+}
+
+function mapQuiz(r: QuizResponse): Quiz {
+  return {
+    id: r.id,
+    title: r.title,
+    description: r.description || undefined,
+    passingScore: r.passingScore,
+    questions: (r.questions ?? []).map((q): QuizQuestion => {
+      const keyToId = Object.fromEntries((q.options ?? []).map((o) => [o.optionKey, o.id]));
+      return {
+        id: q.id,
+        prompt: q.prompt,
+        options: (q.options ?? []).map((o): QuizOption => ({ id: o.id, text: o.text })),
+        correctOptionIds: (q.correctOptionKeys ?? []).map((k) => keyToId[k] ?? k),
+        explanation: q.explanation || undefined,
+      };
+    }),
+  };
+}
+
+function mapReview(r: ReviewResponse): Review {
+  return { id: r.id, user: r.reviewerName, rating: r.rating, comment: r.comment, date: r.reviewedAt };
+}
+
+export function mapCourse(r: CourseResponse): Course {
+  return {
+    id: r.id,
+    title: r.title,
+    slug: r.slug,
+    description: r.description,
+    summary: r.summary,
+    category: r.category,
+    level: r.level as Course["level"],
+    listPrice: r.listPrice,
+    salePrice: r.salePrice || undefined,
+    rating: r.rating,
+    students: r.studentCount,
+    instructor: r.instructor,
+    instructorBio: r.instructorBio,
+    cover: r.cover,
+    lessons: (r.lessons ?? []).map(mapLesson),
+    quizzes: r.quiz ? [mapQuiz(r.quiz)] : [],
+    reviews: (r.reviews ?? []).map(mapReview),
+    tags: r.tags ?? [],
+    status: r.status as ContentStatus,
+    createdAt: r.createdAt,
+  };
+}
 
 export const coursesApi = {
-  list: () => mockRequest(() => db.courses.filter((c) => c.status === "published").map((c) => ({ ...c }))),
+  list: async (): Promise<Course[]> => {
+    const res = await apiFetch<CourseResponse[]>("/courses");
+    return res.map(mapCourse);
+  },
 
-  listAll: () => mockRequest(() => db.courses.map((c) => ({ ...c }))),
+  listAll: async (): Promise<Course[]> => {
+    const res = await apiFetch<CourseResponse[]>("/courses/all");
+    return res.map(mapCourse);
+  },
 
-  getBySlug: (slug: string) =>
-    mockRequest(() => {
-      const c = db.courses.find((c) => c.slug === slug && c.status === "published");
-      return c ? { ...c } : null;
-    }),
+  getBySlug: async (slug: string): Promise<Course | null> => {
+    try {
+      const res = await apiFetch<CourseResponse>(`/courses/${slug}`);
+      return mapCourse(res);
+    } catch {
+      return null;
+    }
+  },
 
-  upsert: (course: Course) =>
-    mockRequest(() => {
-      const idx = db.courses.findIndex((c) => c.id === course.id);
-      if (idx >= 0) db.courses[idx] = { ...course };
-      else db.courses.push({ ...course });
-      return { ...course };
-    }),
+  upsert: async (course: Course): Promise<Course> => {
+    const res = await apiFetch<CourseResponse>("/courses", {
+      method: "PUT",
+      body: JSON.stringify({
+        id: course.id,
+        title: course.title,
+        slug: course.slug,
+        description: course.description,
+        summary: course.summary,
+        category: course.category,
+        level: course.level,
+        listPrice: course.listPrice,
+        salePrice: course.salePrice,
+        instructor: course.instructor,
+        instructorBio: course.instructorBio,
+        cover: course.cover,
+        tags: course.tags,
+        status: course.status,
+      }),
+    });
+    const mapped = mapCourse(res);
+    // Server doesn't manage lessons/quizzes via this endpoint — preserve from local state
+    return { ...mapped, lessons: course.lessons, quizzes: course.quizzes };
+  },
 
-  delete: (id: string) =>
-    mockRequest(() => {
-      db.courses = db.courses.filter((c) => c.id !== id);
-      db.enrollments = db.enrollments.filter((e) => e.courseId !== id);
-    }),
+  delete: async (id: string): Promise<void> => {
+    await apiFetch<void>(`/courses/${id}`, { method: "DELETE" });
+  },
 
-  setStatus: (id: string, status: ContentStatus) =>
-    mockRequest(() => {
-      const course = db.courses.find((c) => c.id === id);
-      if (course) course.status = status;
-      return course ? { ...course } : null;
-    }),
+  setStatus: async (id: string, status: ContentStatus): Promise<Course | null> => {
+    try {
+      const res = await apiFetch<CourseResponse>(`/courses/${id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      return mapCourse(res);
+    } catch {
+      return null;
+    }
+  },
 };

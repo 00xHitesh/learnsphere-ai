@@ -1,117 +1,134 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { resetDb } from "@/test/helpers";
+import { apiOk, apiErr } from "@/test/helpers";
 
-vi.mock("../client", () => ({
-  mockRequest: async <T>(fn: () => T) => fn(),
-}));
+const fetchMock = vi.fn();
+vi.stubGlobal("fetch", fetchMock);
 
-// Import AFTER mocking so the mock is in place
+const { clearTokens } = await import("../client");
 const { authApi } = await import("../auth");
 
+const userResp = {
+  id: "u-1",
+  name: "Alice",
+  email: "alice@test.com",
+  role: "user",
+  interests: ["Design"],
+  createdAt: "2025-01-01",
+  points: 50,
+  regionCode: "US",
+  currencyCode: "USD",
+};
+const tokens = { accessToken: "tok-a", refreshToken: "tok-r" };
+
 beforeEach(() => {
-  resetDb();
+  fetchMock.mockReset();
+  clearTokens();
+  localStorage.clear();
 });
 
 describe("authApi.login", () => {
-  it("returns the user on valid credentials", async () => {
-    const user = await authApi.login("admin@lumen.io", "admin123");
-    expect(user.email).toBe("admin@lumen.io");
-    expect(user.role).toBe("admin");
+  it("returns mapped user", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk({ user: userResp, tokens }));
+    const user = await authApi.login("alice@test.com", "password");
+    expect(user.email).toBe("alice@test.com");
+    expect(user.role).toBe("user");
+    expect(user.interests).toEqual(["Design"]);
+    expect(user.points).toBe(50);
   });
 
-  it("is case-insensitive on email", async () => {
-    const user = await authApi.login("ADMIN@LUMEN.IO", "admin123");
-    expect(user.id).toBe("u-admin");
-  });
-
-  it("throws on wrong password", async () => {
-    await expect(authApi.login("admin@lumen.io", "wrong")).rejects.toThrow(
-      "Invalid email or password.",
+  it("calls POST /auth/login with credentials", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk({ user: userResp, tokens }));
+    await authApi.login("alice@test.com", "password");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/auth/login",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ email: "alice@test.com", password: "password" }) }),
     );
   });
 
-  it("throws on unknown email", async () => {
-    await expect(authApi.login("nobody@test.com", "pass")).rejects.toThrow(
-      "Invalid email or password.",
-    );
+  it("throws on server error", async () => {
+    fetchMock.mockResolvedValueOnce(apiErr("Invalid email or password."));
+    await expect(authApi.login("bad@test.com", "wrong")).rejects.toThrow("Invalid email or password.");
   });
 });
 
 describe("authApi.register", () => {
-  it("creates and returns a new user", async () => {
-    const user = await authApi.register("Alice", "alice@test.com", "password1");
+  it("returns mapped user", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk({ user: userResp, tokens }));
+    const user = await authApi.register("Alice", "alice@test.com", "password");
     expect(user.name).toBe("Alice");
-    expect(user.email).toBe("alice@test.com");
     expect(user.role).toBe("user");
-    expect(user.interests).toEqual([]);
   });
 
-  it("throws when email already exists", async () => {
-    await expect(
-      authApi.register("Dup", "admin@lumen.io", "pass"),
-    ).rejects.toThrow("An account with that email already exists.");
+  it("calls POST /auth/register with name, email, password", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk({ user: userResp, tokens }));
+    await authApi.register("Alice", "alice@test.com", "password");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/auth/register",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ name: "Alice", email: "alice@test.com", password: "password" }) }),
+    );
   });
 
-  it("is case-insensitive on duplicate email check", async () => {
-    await expect(
-      authApi.register("Dup", "DEMO@LUMEN.IO", "pass"),
-    ).rejects.toThrow("An account with that email already exists.");
+  it("throws on server error", async () => {
+    fetchMock.mockResolvedValueOnce(apiErr("An account with that email already exists."));
+    await expect(authApi.register("Dup", "alice@test.com", "pass")).rejects.toThrow(
+      "An account with that email already exists.",
+    );
   });
 });
 
 describe("authApi.getUser", () => {
-  it("returns user by id", async () => {
-    const user = await authApi.getUser("u-demo");
-    expect(user?.name).toBe("Demo Student");
+  it("returns mapped user when token is valid", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk(userResp));
+    const user = await authApi.getUser();
+    expect(user?.name).toBe("Alice");
+    expect(user?.regionCode).toBe("US");
   });
 
-  it("returns null for unknown id", async () => {
-    const user = await authApi.getUser("nonexistent");
+  it("returns null on error", async () => {
+    fetchMock.mockResolvedValueOnce(apiErr("Unauthorized"));
+    const user = await authApi.getUser();
     expect(user).toBeNull();
   });
 });
 
 describe("authApi.updateInterests", () => {
-  it("updates and returns user with new interests", async () => {
-    const updated = await authApi.updateInterests("u-demo", ["Design", "AI"]);
-    expect(updated.interests).toEqual(["Design", "AI"]);
-  });
-
-  it("throws when user not found", async () => {
-    await expect(
-      authApi.updateInterests("ghost", ["Design"]),
-    ).rejects.toThrow("User not found.");
+  it("sends interests and returns updated user", async () => {
+    const updated = { ...userResp, interests: ["Design", "AI"] };
+    fetchMock.mockResolvedValueOnce(apiOk(updated));
+    const user = await authApi.updateInterests("u-1", ["Design", "AI"]);
+    expect(user.interests).toEqual(["Design", "AI"]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/auth/interests",
+      expect.objectContaining({ method: "PUT", body: JSON.stringify({ interests: ["Design", "AI"] }) }),
+    );
   });
 });
 
-describe("authApi.requestReset / resetPassword", () => {
-  it("requestReset returns a token for a known email", async () => {
-    const token = await authApi.requestReset("demo@lumen.io");
-    expect(typeof token).toBe("string");
-    expect(token.length).toBeGreaterThan(0);
+describe("authApi.updateLocale", () => {
+  it("sends regionCode and currencyCode, returns updated user", async () => {
+    const updated = { ...userResp, regionCode: "IN", currencyCode: "INR" };
+    fetchMock.mockResolvedValueOnce(apiOk(updated));
+    const user = await authApi.updateLocale("u-1", "IN", "INR");
+    expect(user.regionCode).toBe("IN");
+    expect(user.currencyCode).toBe("INR");
   });
+});
 
-  it("requestReset throws for unknown email", async () => {
-    await expect(authApi.requestReset("nobody@test.com")).rejects.toThrow(
-      "No account with that email.",
-    );
+describe("authApi.requestReset", () => {
+  it("returns the reset token from the server", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk({ token: "abc123" }));
+    const token = await authApi.requestReset("alice@test.com");
+    expect(token).toBe("abc123");
   });
+});
 
-  it("resetPassword updates password then invalidates token", async () => {
-    const token = await authApi.requestReset("demo@lumen.io");
-    await authApi.resetPassword(token, "newpass");
-    const user = await authApi.login("demo@lumen.io", "newpass");
-    expect(user).toBeTruthy();
-
-    // Token is now consumed
-    await expect(authApi.resetPassword(token, "anotherpass")).rejects.toThrow(
-      "Invalid or expired reset link.",
-    );
-  });
-
-  it("resetPassword throws on invalid token", async () => {
-    await expect(authApi.resetPassword("badtoken", "pass")).rejects.toThrow(
-      "Invalid or expired reset link.",
+describe("authApi.resetPassword", () => {
+  it("calls POST /auth/reset-password with token and password", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk(null));
+    await authApi.resetPassword("abc123", "newpass");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/auth/reset-password",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ token: "abc123", password: "newpass" }) }),
     );
   });
 });

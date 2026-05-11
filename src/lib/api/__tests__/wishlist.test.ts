@@ -1,73 +1,42 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { resetDb } from "@/test/helpers";
-import { db } from "../db";
+import { apiOk } from "@/test/helpers";
 
-vi.mock("../client", () => ({
-  mockRequest: async <T>(fn: () => T) => fn(),
-}));
+const fetchMock = vi.fn();
+vi.stubGlobal("fetch", fetchMock);
 
 const { wishlistApi } = await import("../wishlist");
 
-const USER_ID = "u-demo";
-const COURSE_ID = "c-seed-1";
+const wishlistItemResp = { userId: "u-demo", courseId: "c-1", addedAt: "2025-05-01" };
 
-beforeEach(() => {
-  resetDb();
-});
+beforeEach(() => fetchMock.mockReset());
 
 describe("wishlistApi.listByUser", () => {
-  it("returns empty array when wishlist is empty", async () => {
-    const result = await wishlistApi.listByUser(USER_ID);
-    expect(result).toEqual([]);
-  });
-
-  it("returns only entries for the specified user", async () => {
-    db.wishlists.push(
-      { userId: USER_ID, courseId: COURSE_ID },
-      { userId: "u-other", courseId: COURSE_ID },
+  it("calls GET /wishlist and returns items with courseId", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk([wishlistItemResp]));
+    const result = await wishlistApi.listByUser("u-demo");
+    expect(result).toHaveLength(1);
+    expect(result[0].courseId).toBe("c-1");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/wishlist",
+      expect.any(Object),
     );
-    const result = await wishlistApi.listByUser(USER_ID);
-    expect(result.length).toBe(1);
-    expect(result[0].userId).toBe(USER_ID);
-  });
-
-  it("returns copies — mutations do not affect the db", async () => {
-    db.wishlists.push({ userId: USER_ID, courseId: COURSE_ID });
-    const result = await wishlistApi.listByUser(USER_ID);
-    result[0].courseId = "mutated";
-    const again = await wishlistApi.listByUser(USER_ID);
-    expect(again[0].courseId).toBe(COURSE_ID);
   });
 });
 
 describe("wishlistApi.toggle", () => {
-  it("adds a course to the wishlist and returns true", async () => {
-    const added = await wishlistApi.toggle(USER_ID, COURSE_ID);
-    expect(added).toBe(true);
-    expect(db.wishlists).toHaveLength(1);
-    expect(db.wishlists[0]).toEqual({ userId: USER_ID, courseId: COURSE_ID });
-  });
-
-  it("removes a course from the wishlist and returns false", async () => {
-    db.wishlists.push({ userId: USER_ID, courseId: COURSE_ID });
-    const removed = await wishlistApi.toggle(USER_ID, COURSE_ID);
-    expect(removed).toBe(false);
-    expect(db.wishlists).toHaveLength(0);
-  });
-
-  it("toggling twice results in no net change", async () => {
-    await wishlistApi.toggle(USER_ID, COURSE_ID);
-    await wishlistApi.toggle(USER_ID, COURSE_ID);
-    expect(db.wishlists).toHaveLength(0);
-  });
-
-  it("only removes the matching user+course pair", async () => {
-    db.wishlists.push(
-      { userId: USER_ID, courseId: COURSE_ID },
-      { userId: "u-other", courseId: COURSE_ID },
+  it("calls POST /wishlist/toggle with courseId and returns wishlisted boolean", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk({ wishlisted: true }));
+    const result = await wishlistApi.toggle("u-demo", "c-1");
+    expect(result).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/wishlist/toggle",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ courseId: "c-1" }) }),
     );
-    await wishlistApi.toggle(USER_ID, COURSE_ID);
-    expect(db.wishlists).toHaveLength(1);
-    expect(db.wishlists[0].userId).toBe("u-other");
+  });
+
+  it("returns false when un-wishlisting", async () => {
+    fetchMock.mockResolvedValueOnce(apiOk({ wishlisted: false }));
+    const result = await wishlistApi.toggle("u-demo", "c-1");
+    expect(result).toBe(false);
   });
 });
